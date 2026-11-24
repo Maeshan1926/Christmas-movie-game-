@@ -2,6 +2,7 @@ import { esc, toast, confetti, sleep, storage, reducedMotion } from '../util.js'
 import { app, mutate, watchedSet } from '../store.js';
 import { CATEGORIES, REROLLS_PER_CATEGORY } from '../shared/config.js';
 import { formatDay } from '../shared/dates.js';
+import { overallRanks } from '../shared/pool.js';
 import { movieCard, markWatched, openRatings, askConfirm } from '../components.js';
 import { playDrumroll, playJingle, playPop } from '../fx/sound.js';
 
@@ -39,6 +40,7 @@ export function renderTonight(el) {
   }
 
   const watched = watchedSet();
+  const ranks = overallRanks([...app.movies.values()]);
   const cols = CATEGORIES.map((c) => {
     const ids = night.picks[c.id] || [];
     const used = night.rerolls?.[c.id] || 0;
@@ -59,7 +61,7 @@ export function renderTonight(el) {
       const ribbon = chosen ? '<span class="ribbon">Tonight\'s Pick</span>' : isWatched ? '<span class="ribbon green">Watched</span>' : '';
       const anim = animateIds.has(id) ? 'flip-in' : '';
       return `${ids.length > 1 ? `<div class="option-label">${i === 0 ? 'Original pick' : 'Reroll'}</div>` : ''}
-        ${movieCard(m, { actions, cls: `${chosen ? 'chosen' : ''} ${anim}`, ribbon, delay: animateIds.size > 1 ? CATEGORIES.findIndex((x) => x.id === c.id) * 0.45 : 0 })}`;
+        ${movieCard(m, { actions, cls: `${chosen ? 'chosen' : ''} ${anim}`, ribbon, rank: ranks.get(id), delay: animateIds.size > 1 ? CATEGORIES.findIndex((x) => x.id === c.id) * 0.45 : 0 })}`;
     }).join('');
     return `<section class="cat-col" aria-labelledby="h-${c.id}">
       <div class="cat-head" style="--cc:${CAT_COLOR[c.id]}">

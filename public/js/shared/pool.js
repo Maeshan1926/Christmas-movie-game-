@@ -11,6 +11,14 @@ export function rankScore(m, mean) {
   return (v / (v + PRIOR_VOTES)) * r + (PRIOR_VOTES / (v + PRIOR_VOTES)) * mean;
 }
 
+/** Rank (1 = best) of every movie in the catalog by weighted audience score. */
+export function overallRanks(catalog) {
+  const rated = catalog.filter((m) => m.votes > 0);
+  const mean = rated.length ? rated.reduce((s, m) => s + (m.score || 0), 0) / rated.length : 6;
+  const sorted = [...catalog].sort((a, b) => rankScore(b, mean) - rankScore(a, mean) || a.title.localeCompare(b.title));
+  return new Map(sorted.map((m, i) => [m.id, i + 1]));
+}
+
 /**
  * Ids of movies eligible for nightly picks.
  * @param {object[]} catalog
