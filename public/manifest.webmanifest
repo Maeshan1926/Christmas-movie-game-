@@ -3,8 +3,8 @@
   "short_name": "Movie Challenge",
   "start_url": "/#tonight",
   "display": "standalone",
-  "background_color": "#0c1a14",
-  "theme_color": "#0c1a14",
+  "background_color": "#170906",
+  "theme_color": "#170906",
   "icons": [
     { "src": "/img/icon.svg", "sizes": "any", "type": "image/svg+xml" },
     { "src": "/img/icon-180.png", "sizes": "180x180", "type": "image/png" },

@@ -51,10 +51,10 @@ export function renderHome(el) {
   el.innerHTML = `<div class="home-wrap">
     <div class="hero" id="hero">
       ${HERO_SVG}
-      <img src="/img/hero.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" fetchpriority="high"
-        onload="this.parentNode.classList.add('has-art')" onerror="this.remove()">
+      <picture><source type="image/webp" srcset="/img/hero-900.webp 900w, /img/hero.webp 1672w" sizes="(min-width: 1100px) 1068px, 100vw">
+        <img src="/img/hero.jpg" alt="The Trunk Family Christmas Movies: a cozy living room with a lit tree, fireplace and stockings" width="1672" height="941" fetchpriority="high"
+          onload="this.closest('.hero').classList.add('has-art')" onerror="this.closest('picture').remove()"></picture>
       <div class="hero-brand"><span class="brand-small">The Trunk Family</span><span class="brand-big">Christmas Movies</span></div>
-      <div class="countdown" aria-label="${d} days until Christmas">${d === 0 ? '<b>🎄</b><small>Merry Christmas</small>' : `<b>${d}</b><small>${d === 1 ? 'sleep left' : 'sleeps left'}</small>`}</div>
     </div>
 
     ${chosen && !chosenWatched ? `
@@ -74,12 +74,13 @@ export function renderHome(el) {
 
     <div class="home-row">
       <div class="ring" role="img" aria-label="${done} of ${total} movies watched">
-        <svg viewBox="0 0 84 84"><circle cx="42" cy="42" r="36" fill="none" stroke="rgba(246,236,216,.12)" stroke-width="8"/>
-        <circle cx="42" cy="42" r="36" fill="none" stroke="#3fae6a" stroke-width="8" stroke-linecap="round" stroke-dasharray="${(C * done) / total} ${C}"/></svg>
+        <svg viewBox="0 0 84 84"><circle cx="42" cy="42" r="36" fill="none" stroke="rgba(251,236,211,.12)" stroke-width="8"/>
+        <circle cx="42" cy="42" r="36" fill="none" stroke="#4f9e45" stroke-width="8" stroke-linecap="round" stroke-dasharray="${(C * done) / total} ${C}"/></svg>
         <div class="lbl"><div><b>${done}</b><small>of ${total}</small></div></div>
       </div>
       <div class="progress-copy"><span class="eyebrow">The Christmas 100</span><b>${pct}% watched</b>
         <a href="#top100" class="subtle" style="font-size:13px">See the list</a></div>
+      <div class="countdown" aria-label="${d} days until Christmas">${d === 0 ? '<b>🎄</b><small>Merry Christmas</small>' : `<b>${d}</b><small>${d === 1 ? 'sleep left' : 'sleeps left'}</small>`}</div>
     </div>
 
     ${lastMovie ? `<button class="last-watched" data-open="${lastMovie.id}">
