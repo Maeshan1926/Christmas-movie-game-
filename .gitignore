@@ -1,0 +1,7 @@
+node_modules/
+.env
+.data/
+.netlify/
+public/data/catalog.json
+public/data/catalog-report.json
+test-results/

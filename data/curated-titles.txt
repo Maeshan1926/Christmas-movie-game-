@@ -1,0 +1,623 @@
+# The Trunk Family Christmas Movie Challenge: curated seed list
+# Format: Title | Year | category | tags
+#   category: c = Comedy, d = Drama, s = Mystery Stocking
+#   tags (comma separated, optional): classic, hallmark, horror, action, animated,
+#     intl, adjacent, mystery, romance, musical, fantasy
+# Every line is verified against TMDB at build time (title + year within 1).
+# Lines that fail verification are dropped and listed in public/data/catalog-report.json.
+
+## Timeless classics
+It's a Wonderful Life | 1946 | d | classic
+Miracle on 34th Street | 1947 | d | classic
+White Christmas | 1954 | d | classic,musical
+Holiday Inn | 1942 | d | classic,musical
+The Shop Around the Corner | 1940 | d | classic,romance
+Christmas in Connecticut | 1945 | c | classic,romance
+The Bishop's Wife | 1947 | d | classic,fantasy
+Meet Me in St. Louis | 1944 | d | classic,musical
+The Bells of St. Mary's | 1945 | d | classic
+Remember the Night | 1940 | d | classic,romance
+It Happened on Fifth Avenue | 1947 | c | classic
+Holiday Affair | 1949 | d | classic,romance
+The Man Who Came to Dinner | 1942 | c | classic
+We're No Angels | 1955 | c | classic
+The Lemon Drop Kid | 1951 | c | classic
+Scrooge | 1951 | d | classic
+A Christmas Carol | 1938 | d | classic
+Scrooge | 1970 | d | classic,musical
+Babes in Toyland | 1961 | s | classic,musical,fantasy
+Babes in Toyland | 1934 | c | classic
+Beyond Tomorrow | 1940 | d | classic,fantasy
+Christmas Holiday | 1944 | s | classic,mystery
+The Cheaters | 1945 | d | classic
+Bell Book and Candle | 1958 | c | classic,romance
+The Apartment | 1960 | d | classic,adjacent
+Desk Set | 1957 | c | classic,adjacent
+Susan Slept Here | 1954 | c | classic
+All Mine to Give | 1957 | d | classic
+The Thin Man | 1934 | s | classic,mystery,adjacent
+Lady in the Lake | 1947 | s | classic,mystery
+I'll Be Seeing You | 1944 | d | classic
+Tenth Avenue Angel | 1948 | d | classic
+Little Women | 1949 | d | classic
+Little Women | 1933 | d | classic
+Christmas Eve | 1947 | d | classic
+Santa Claus | 1959 | s | classic,intl,fantasy
+Santa Claus Conquers the Martians | 1964 | s | classic,fantasy
+The Gathering | 1977 | d | classic
+The Homecoming: A Christmas Story | 1971 | d | classic
+An American Christmas Carol | 1979 | d | classic
+A Christmas Carol | 1984 | d | classic
+A Christmas Carol | 1999 | d |
+Scrooged | 1988 | c |
+A Christmas Story | 1983 | c | classic
+National Lampoon's Christmas Vacation | 1989 | c | classic
+Trading Places | 1983 | c | adjacent
+Planes, Trains and Automobiles | 1987 | c | adjacent
+One Magic Christmas | 1985 | d | fantasy
+Prancer | 1989 | d |
+Ernest Saves Christmas | 1988 | c |
+Santa Claus: The Movie | 1985 | s | fantasy
+Christmas Story | 2007 | d | intl
+The Silent Partner | 1978 | s | mystery,intl
+Christmas Evil | 1980 | s | horror
+Black Christmas | 1974 | s | horror,intl
+Silent Night, Deadly Night | 1984 | s | horror
+Silent Night, Deadly Night Part 2 | 1987 | s | horror
+Gremlins | 1984 | s | horror,adjacent
+Fanny and Alexander | 1982 | d | intl
+Three Wishes for Cinderella | 1973 | s | intl,fantasy,romance
+Le Père Noël est une ordure | 1982 | c | intl
+Jingle All the Way | 1996 | c |
+The Ref | 1994 | c |
+Mixed Nuts | 1994 | c |
+Trapped in Paradise | 1994 | c |
+Miracle on 34th Street | 1994 | d |
+The Santa Clause | 1994 | c |
+The Santa Clause 2 | 2002 | c |
+The Santa Clause 3: The Escape Clause | 2006 | c |
+Home Alone | 1990 | c |
+Home Alone 2: Lost in New York | 1992 | c |
+Home Alone 3 | 1997 | c |
+Home Alone 4 | 2002 | c |
+Home Alone: The Holiday Heist | 2012 | c |
+Home Sweet Home Alone | 2021 | c |
+Edward Scissorhands | 1990 | s | fantasy,adjacent
+The Nightmare Before Christmas | 1993 | s | animated,fantasy
+The Muppet Christmas Carol | 1992 | c | musical
+Batman Returns | 1992 | s | action,adjacent
+Die Hard | 1988 | s | action
+Die Hard 2 | 1990 | s | action
+Lethal Weapon | 1987 | s | action
+The Long Kiss Goodnight | 1996 | s | action
+Reindeer Games | 2000 | s | action
+Kiss Kiss Bang Bang | 2005 | s | action,mystery
+Iron Man 3 | 2013 | s | action,adjacent
+Enemy of the State | 1998 | s | action,adjacent
+Toys | 1992 | s | fantasy
+Jack Frost | 1998 | s | fantasy
+Jack Frost | 1997 | s | horror
+I'll Be Home for Christmas | 1998 | c |
+All I Want for Christmas | 1991 | c |
+Jingle Bell Rock | 1995 | c |
+The Preacher's Wife | 1996 | d | romance
+The Christmas Box | 1995 | d |
+While You Were Sleeping | 1995 | c | romance
+Little Women | 1994 | d |
+Little Women | 2019 | d |
+You've Got Mail | 1998 | c | romance
+Serendipity | 2001 | c | romance
+Bridget Jones's Diary | 2001 | c | romance,adjacent
+The Family Man | 2000 | d | fantasy,romance
+Go | 1999 | s | adjacent
+The Ice Harvest | 2005 | s | mystery
+In Bruges | 2008 | s | adjacent
+Brazil | 1985 | s | adjacent
+Better Off Dead... | 1985 | c | adjacent
+Christmas Vacation 2: Cousin Eddie's Island Adventure | 2003 | c |
+Mickey's Christmas Carol | 1983 | s | animated
+Annabelle's Wish | 1997 | s | animated
+Rudolph the Red-Nosed Reindeer: The Movie | 1998 | s | animated
+Beauty and the Beast: The Enchanted Christmas | 1997 | s | animated
+Mickey's Once Upon a Christmas | 1999 | s | animated
+Mickey's Twice Upon a Christmas | 2004 | s | animated
+Olive, the Other Reindeer | 1999 | s | animated
+The Snowman | 1982 | s | animated,intl
+Father Christmas | 1991 | s | animated,intl
+A Flintstones Christmas Carol | 1994 | s | animated
+The Nutcracker Prince | 1990 | s | animated
+Nutcracker: The Motion Picture | 1986 | d | musical
+The Nutcracker | 1993 | d | musical
+Barbie in the Nutcracker | 2001 | s | animated
+Barbie in A Christmas Carol | 2008 | s | animated
+Barbie: A Perfect Christmas | 2011 | s | animated
+The Swan Princess Christmas | 2012 | s | animated
+Christmas Carol: The Movie | 2001 | s | animated,intl
+A Charlie Brown Christmas | 1965 | s | animated,classic
+How the Grinch Stole Christmas! | 1966 | s | animated,classic
+Rudolph the Red-Nosed Reindeer | 1964 | s | animated,classic
+Frosty the Snowman | 1969 | s | animated,classic
+Santa Claus Is Comin' to Town | 1970 | s | animated,classic
+The Year Without a Santa Claus | 1974 | s | animated,classic
+The Little Drummer Boy | 1968 | s | animated,classic
+'Twas the Night Before Christmas | 1974 | s | animated,classic
+Rudolph's Shiny New Year | 1976 | s | animated,classic
+Frosty's Winter Wonderland | 1976 | s | animated,classic
+Nestor, the Long-Eared Christmas Donkey | 1977 | s | animated,classic
+Rudolph and Frosty's Christmas in July | 1979 | s | animated,classic
+Jack Frost | 1979 | s | animated,classic
+Pinocchio's Christmas | 1980 | s | animated,classic
+The Leprechauns' Christmas Gold | 1981 | s | animated
+Yogi's First Christmas | 1980 | s | animated
+Frosty Returns | 1992 | s | animated
+Emmet Otter's Jug-Band Christmas | 1977 | c | classic
+A Muppet Family Christmas | 1987 | c |
+Christmas Eve on Sesame Street | 1978 | c | classic
+Elmo Saves Christmas | 1996 | c |
+The Christmas Toy | 1986 | c |
+Mr. Magoo's Christmas Carol | 1962 | s | animated,classic
+A Garfield Christmas | 1987 | s | animated
+Ziggy's Gift | 1982 | s | animated
+Pluto's Christmas Tree | 1952 | s | animated,classic
+Santa's Workshop | 1932 | s | animated,classic
+The Night Before Christmas | 1933 | s | animated,classic
+The Polar Express | 2004 | s | animated,fantasy
+A Christmas Carol | 2009 | s | animated
+Arthur Christmas | 2011 | s | animated,intl
+Rise of the Guardians | 2012 | s | animated,fantasy
+Shrek the Halls | 2007 | s | animated
+Merry Madagascar | 2009 | s | animated
+Prep & Landing | 2009 | s | animated
+Prep & Landing: Naughty vs. Nice | 2011 | s | animated
+Kung Fu Panda Holiday | 2010 | s | animated
+Toy Story That Time Forgot | 2014 | s | animated
+Olaf's Frozen Adventure | 2017 | s | animated
+The Star | 2017 | s | animated
+The Grinch | 2018 | s | animated
+Klaus | 2019 | s | animated,intl
+That Christmas | 2024 | s | animated,intl
+Saving Santa | 2013 | s | animated,intl
+Elliot the Littlest Reindeer | 2018 | s | animated
+Tokyo Godfathers | 2003 | s | animated,intl
+Merry Little Batman | 2023 | s | animated,action
+Scooby-Doo! Haunted Holidays | 2012 | s | animated,mystery
+Robbie the Reindeer in Hooves of Fire | 1999 | s | animated,intl
+Gingerbread Man | 2005 | s | animated
+Dora's Christmas Carol Adventure | 2009 | s | animated
+Mickey's Christmas Tale | 2019 | s | animated
+Elf: Buddy's Musical Christmas | 2014 | s | animated,musical
+Spirit Riding Free: Spirit of Christmas | 2019 | s | animated
+Room on the Broom | 2012 | s | animated,intl
+Stick Man | 2015 | s | animated,intl
+The Snowman and the Snowdog | 2012 | s | animated,intl
+Lego Star Wars Holiday Special | 2020 | s | animated
+The Christmas Chronicles | 2018 | s | fantasy
+The Christmas Chronicles 2 | 2020 | s | fantasy
+A Boy Called Christmas | 2021 | s | fantasy,intl
+Jingle Jangle: A Christmas Journey | 2020 | s | fantasy,musical
+The Lion, the Witch and the Wardrobe | 2005 | s | fantasy,adjacent
+Harry Potter and the Philosopher's Stone | 2001 | s | fantasy,adjacent
+The Nutcracker and the Four Realms | 2018 | s | fantasy
+Godmothered | 2020 | c | fantasy
+Noelle | 2019 | c | fantasy
+Spirited | 2022 | c | musical,fantasy
+Red One | 2024 | s | action,fantasy
+Violent Night | 2022 | s | action,horror
+Fatman | 2020 | s | action
+Carry-On | 2024 | s | action
+Silent Night | 2023 | s | action
+The Night Before the Night Before Christmas | 1994 | d |
+
+## Comedies 2000s and later
+Elf | 2003 | c |
+Love Actually | 2003 | c | romance,intl
+Bad Santa | 2003 | c |
+Bad Santa 2 | 2016 | c |
+Christmas with the Kranks | 2004 | c |
+Surviving Christmas | 2004 | c |
+The Family Stone | 2005 | c |
+Deck the Halls | 2006 | c |
+The Holiday | 2006 | c | romance
+Last Holiday | 2006 | c |
+Fred Claus | 2007 | c |
+This Christmas | 2007 | c |
+Four Christmases | 2008 | c |
+Nothing Like the Holidays | 2008 | c |
+Christmas Cottage | 2008 | d |
+Ghosts of Girlfriends Past | 2009 | c | romance,fantasy
+A Very Harold & Kumar Christmas | 2011 | c |
+The Best Man Holiday | 2013 | c |
+Get Santa | 2014 | c | intl
+Nativity! | 2009 | c | intl
+Nativity 2: Danger in the Manger! | 2012 | c | intl
+Nativity 3: Dude, Where's My Donkey?! | 2014 | c | intl
+Nativity Rocks! | 2018 | c | intl
+The Night Before | 2015 | c |
+Love the Coopers | 2015 | c |
+Office Christmas Party | 2016 | c |
+Almost Christmas | 2016 | c |
+Why Him? | 2016 | c | adjacent
+A Bad Moms Christmas | 2017 | c |
+Daddy's Home 2 | 2017 | c |
+The Man Who Invented Christmas | 2017 | d |
+Christmas Inheritance | 2017 | c | romance
+A Christmas Prince | 2017 | c | romance
+A Christmas Prince: The Royal Wedding | 2018 | c | romance
+A Christmas Prince: The Royal Baby | 2019 | c | romance
+The Princess Switch | 2018 | c | romance
+The Princess Switch: Switched Again | 2020 | c | romance
+The Princess Switch 3: Romancing the Star | 2021 | c | romance
+The Holiday Calendar | 2018 | c | romance
+The Knight Before Christmas | 2019 | c | romance,fantasy
+Holiday in the Wild | 2019 | d | romance
+Let It Snow | 2019 | c | romance
+Last Christmas | 2019 | c | romance,intl
+Holidate | 2020 | c | romance
+Operation Christmas Drop | 2020 | c | romance
+Happiest Season | 2020 | c | romance
+Christmas on the Square | 2020 | c | musical
+The Christmas Chronicles | 2018 | s | fantasy
+Single All the Way | 2021 | c | romance
+Love Hard | 2021 | c | romance
+A Castle for Christmas | 2021 | c | romance
+8-Bit Christmas | 2021 | c |
+Christmas with the Campbells | 2022 | c | romance
+Falling for Christmas | 2022 | c | romance
+Christmas with You | 2022 | c | romance
+A Christmas Story Christmas | 2022 | c |
+Your Christmas or Mine? | 2022 | c | romance,intl
+Your Christmas or Mine 2 | 2023 | c | romance,intl
+The Noel Diary | 2022 | d | romance
+I Believe in Santa | 2022 | c | romance
+Something from Tiffany's | 2022 | c | romance
+Candy Cane Lane | 2023 | c |
+Best. Christmas. Ever! | 2023 | c |
+Family Switch | 2023 | c |
+The Holdovers | 2023 | d |
+Genie | 2023 | c | fantasy
+Dashing Through the Snow | 2023 | c |
+Merry Christmas | 2024 | d | intl,mystery
+Hot Frosty | 2024 | c | romance,fantasy
+Our Little Secret | 2024 | c | romance
+Meet Me Next Christmas | 2024 | c | romance
+The Best Christmas Pageant Ever | 2024 | c |
+Christmas Eve in Miller's Point | 2024 | d |
+Mean Girls | 2004 | c | adjacent
+Unaccompanied Minors | 2006 | c |
+Jingle All the Way 2 | 2014 | c |
+Christmas in Wonderland | 2007 | c |
+Snow Buddies | 2008 | c |
+Santa Buddies | 2009 | c |
+The Search for Santa Paws | 2010 | c |
+Santa Paws 2: The Santa Pups | 2012 | c |
+Christmas Eve | 2015 | c |
+The Christmas Candle | 2013 | d | intl
+Black Nativity | 2013 | d | musical
+Jingle Bell Rocks! | 2013 | d |
+Christmas Vacation | 1989 | c |
+Mr. St. Nick | 2002 | c |
+Eight Crazy Nights | 2002 | s | animated
+Christmas with the Coopers | 2015 | c |
+The Christmas Candle | 2013 | d |
+Arthur Christmas | 2011 | s | animated
+Christmas in the Smokies | 2015 | d |
+A Merry Friggin' Christmas | 2014 | c |
+The Night Before Christmas | 2010 | s | animated
+A Christmas Kiss | 2011 | c | romance
+Christmas Crush | 2019 | c | romance
+Merry Kissmas | 2015 | c | romance
+Christmas Survival | 2018 | c | intl
+Surviving Christmas with the Relatives | 2018 | c | intl
+Grumpy Cat's Worst Christmas Ever | 2014 | c |
+A Madea Christmas | 2013 | c |
+Tyler Perry's A Madea Christmas | 2013 | c |
+The Christmas Shoes | 2002 | d |
+Christmas with Holly | 2012 | d |
+The Christmas Card | 2006 | d | hallmark,romance
+Love at the Christmas Table | 2012 | c | romance
+Silver Bells | 2005 | d |
+Holiday Engagement | 2011 | c | romance
+Christmas Lodge | 2011 | d | romance
+Noel | 2004 | d |
+Happy Christmas | 2014 | d |
+Carol | 2015 | d | romance
+Joyeux Noel | 2005 | d | intl
+A Christmas Tale | 2008 | d | intl
+Christmas in August | 1998 | d | intl,romance
+The Polar Bears' Christmas | 2010 | s | animated
+Petit Papa Noël | 1987 | d | intl
+3 Days of Christmas | 2021 | d | intl
+Christmas as Usual | 2023 | c | intl
+Home for Christmas | 2010 | d | intl
+Christmas Crossfire | 2020 | s | intl,action,mystery
+Christmas Flow | 2021 | c | intl,romance
+A Very Country Christmas | 2017 | c | romance
+Christmas at the Plaza | 2019 | c | hallmark,romance
+Love, Lights, Hanukkah! | 2020 | c | hallmark,romance
+
+## Dramas and heartwarmers
+The Christmas Shoes | 2002 | d |
+The Christmas Blessing | 2005 | d |
+The Christmas Hope | 2009 | d |
+A Christmas Memory | 1997 | d |
+A Christmas Memory | 1966 | d | classic
+The Christmas Wish | 1998 | d |
+The Christmas List | 1997 | d |
+The Christmas Gift | 1986 | d |
+The Christmas Tree | 1996 | d |
+A Christmas Without Snow | 1980 | d |
+The Christmas Wife | 1988 | d |
+One Christmas | 1994 | d |
+The Christmas Secret | 2000 | d |
+Silent Night | 2002 | d | intl
+Christmas Every Day | 1996 | c | fantasy
+The Gift of Love | 1994 | d |
+Comfort and Joy | 1984 | c | intl
+An Angel for Christmas | 2014 | d |
+Christmas Child | 2004 | d |
+Christmas in Canaan | 2009 | d |
+Christmas Oranges | 2012 | d |
+The Most Wonderful Time of the Year | 2008 | c | romance
+Christmas Under Fire | 2010 | d | intl
+Christmas Under Wraps | 2014 | c | hallmark,romance
+The Christmas Train | 2017 | d | hallmark,romance
+Signed, Sealed, Delivered for Christmas | 2014 | d | hallmark
+The Christmas Note | 2015 | d |
+A Song for Christmas | 2017 | d | hallmark
+Christmas in Conway | 2013 | d | hallmark
+Christmas with Tucker | 2013 | d | hallmark
+The Christmas Ornament | 2013 | d | hallmark,romance
+Christmas Magic | 2011 | d | hallmark,fantasy
+Christmas Mail | 2010 | c | romance
+Christmas Cupid | 2010 | c | romance,fantasy
+Santa Baby | 2006 | c |
+Santa Baby 2: Christmas Maybe | 2009 | c |
+The Santa Incident | 2010 | c | hallmark
+Moonlight & Mistletoe | 2008 | d | hallmark,romance
+Farewell Mr. Kringle | 2010 | d | hallmark,romance
+The Christmas Choir | 2008 | d | hallmark
+A Holiday Engagement | 2011 | c | romance
+The Christmas Pageant | 2011 | d |
+A Princess for Christmas | 2011 | c | hallmark,romance
+Hitched for the Holidays | 2012 | c | hallmark,romance
+Naughty or Nice | 2012 | c | hallmark,fantasy
+Help for the Holidays | 2012 | c | hallmark,fantasy
+Matchmaker Santa | 2012 | c | hallmark,romance
+The Christmas Heart | 2012 | d |
+Fir Crazy | 2013 | c | hallmark,romance
+The Nine Lives of Christmas | 2014 | c | hallmark,romance
+Northpole | 2014 | s | hallmark,fantasy
+Northpole: Open for Christmas | 2015 | s | hallmark,fantasy
+Christmas Incorporated | 2015 | c | hallmark,romance
+Crown for Christmas | 2015 | c | hallmark,romance
+A Christmas Detour | 2015 | c | hallmark,romance
+Christmas Land | 2015 | d | hallmark,romance
+On the Twelfth Day of Christmas | 2015 | c | hallmark,romance
+Charming Christmas | 2015 | c | hallmark,romance
+A Christmas Melody | 2015 | c | hallmark,romance
+Ice Sculpture Christmas | 2015 | d | hallmark,romance
+Journey Back to Christmas | 2016 | s | hallmark,fantasy
+Hearts of Christmas | 2016 | d | hallmark
+Christmas in Homestead | 2016 | c | hallmark,romance
+A Royal Christmas | 2014 | c | hallmark,romance
+Love You Like Christmas | 2016 | c | hallmark,romance
+Sleigh Bells Ring | 2016 | c | hallmark,romance,fantasy
+The Mistletoe Promise | 2016 | c | hallmark,romance
+Christmas Next Door | 2017 | c | hallmark,romance
+Christmas in Evergreen | 2017 | d | hallmark,romance
+Christmas Festival of Ice | 2017 | c | hallmark,romance
+Marry Me at Christmas | 2017 | c | hallmark,romance
+The Sweetest Christmas | 2017 | c | hallmark,romance
+Christmas Encore | 2017 | c | hallmark,romance
+Switched for Christmas | 2017 | c | hallmark,romance
+With Love, Christmas | 2017 | c | romance
+Christmas at Holly Lodge | 2017 | c | hallmark,romance
+Enchanted Christmas | 2017 | c | hallmark,romance
+Christmas at Pemberley Manor | 2018 | c | hallmark,romance
+Christmas at Graceland | 2018 | c | hallmark,romance
+Christmas Bells Are Ringing | 2018 | c | hallmark,romance
+Mingle All the Way | 2018 | c | hallmark,romance
+Jingle Around the Clock | 2018 | c | romance
+A Gingerbread Romance | 2018 | c | hallmark,romance
+Christmas Joy | 2018 | c | hallmark,romance
+Christmas Wonderland | 2018 | c | hallmark,romance
+Christmas in Evergreen: Letters to Santa | 2018 | d | hallmark,romance
+Christmas at the Palace | 2018 | c | hallmark,romance
+Christmas Made to Order | 2018 | c | hallmark,romance
+A Shoe Addict's Christmas | 2018 | c | hallmark,romance,fantasy
+Christmas Town | 2019 | c | hallmark,romance
+Christmas in Rome | 2019 | c | hallmark,romance
+Christmas at Dollywood | 2019 | c | hallmark,romance
+Write Before Christmas | 2019 | c | hallmark,romance
+Check Inn to Christmas | 2019 | c | hallmark,romance
+Christmas Under the Stars | 2019 | d | hallmark,romance
+Holiday Date | 2019 | c | hallmark,romance
+Christmas in Evergreen: Tidings of Joy | 2019 | d | hallmark,romance
+Christmas Wishes & Mistletoe Kisses | 2019 | c | romance
+Christmas at Castle Hart | 2021 | c | hallmark,romance
+The Christmas House | 2020 | c | hallmark
+Christmas Waltz | 2020 | c | hallmark,romance
+Christmas in Evergreen: Bells Are Ringing | 2020 | d | hallmark,romance
+On the 12th Date of Christmas | 2020 | c | hallmark,romance
+Christmas Tree Lane | 2020 | c | hallmark,romance
+Christmas Comes Twice | 2020 | s | hallmark,fantasy
+A Timeless Christmas | 2020 | s | hallmark,fantasy,romance
+Jingle Bell Bride | 2020 | c | hallmark,romance
+Christmas She Wrote | 2020 | c | hallmark,romance
+The Christmas House 2: Deck Those Halls | 2021 | c | hallmark
+Boyfriends of Christmas Past | 2021 | c | hallmark,romance,fantasy
+Next Stop, Christmas | 2021 | s | hallmark,fantasy,romance
+A Kiss Before Christmas | 2021 | s | hallmark,fantasy,romance
+Christmas Sail | 2021 | d | hallmark
+A Christmas Treasure | 2021 | c | romance
+The Nine Kittens of Christmas | 2021 | c | hallmark,romance
+Christmas Class Reunion | 2022 | c | hallmark,romance
+Three Wise Men and a Baby | 2022 | c | hallmark
+The Royal Nanny | 2022 | c | hallmark,romance
+Haul Out the Holly | 2022 | c | hallmark,romance
+Haul Out the Holly: Lit Up | 2023 | c | hallmark,romance
+Our Christmas Mural | 2023 | c | hallmark,romance
+A Biltmore Christmas | 2023 | s | hallmark,fantasy,romance
+Mystery on Mistletoe Lane | 2023 | s | hallmark,mystery
+Christmas on Cherry Lane | 2023 | c | hallmark,romance
+A Merry Scottish Christmas | 2023 | c | hallmark,romance
+Holidazed | 2024 | c | hallmark,romance
+Hitched for the Holidays | 2012 | c | hallmark
+The Most Colorful Time of the Year | 2022 | c | hallmark,romance
+When I Think of Christmas | 2022 | c | hallmark,romance
+Christmas at the Golden Dragon | 2022 | d | hallmark
+A Holiday Spectacular | 2022 | d | hallmark,romance
+Christmas Bedtime Stories | 2022 | c | hallmark
+We Need a Little Christmas | 2022 | c | hallmark,romance
+Lights, Camera, Christmas! | 2022 | c | hallmark,romance
+
+## Mysteries
+Murder, She Baked: A Plum Pudding Mystery | 2015 | s | hallmark,mystery
+Aurora Teagarden Mysteries: A Very Foul Play | 2019 | s | hallmark,mystery
+Mystery 101: An Education in Murder | 2020 | s | hallmark,mystery
+Christmas in Murder | 2016 | s | mystery
+A Christmas Mystery | 2022 | s | mystery
+Hercule Poirot's Christmas | 1995 | s | mystery,intl
+The Christmas Secret | 2014 | s | hallmark,mystery
+The Thin Man | 1934 | s | mystery
+Kiss Kiss Bang Bang | 2005 | s | mystery
+
+## Christmas horror
+Krampus | 2015 | s | horror
+Better Watch Out | 2016 | s | horror
+A Christmas Horror Story | 2015 | s | horror,intl
+Rare Exports | 2010 | s | horror,fantasy,intl
+Anna and the Apocalypse | 2017 | s | horror,musical,intl
+Black Christmas | 2006 | s | horror
+Black Christmas | 2019 | s | horror
+Christmas Bloody Christmas | 2022 | s | horror
+It's a Wonderful Knife | 2023 | s | horror
+Santa's Slay | 2005 | s | horror
+Silent Night | 2012 | s | horror
+Red Christmas | 2016 | s | horror,intl
+Saint | 2010 | s | horror,intl
+Elves | 1989 | s | horror
+The Lodge | 2019 | s | horror
+All the Creatures Were Stirring | 2018 | s | horror
+Await Further Instructions | 2018 | s | horror,intl
+The Advent Calendar | 2021 | s | horror,intl
+There's Something in the Barn | 2023 | s | horror,intl
+Dead End | 2003 | s | horror
+To All a Goodnight | 1980 | s | horror
+You Better Watch Out | 1980 | s | horror
+Don't Open Till Christmas | 1984 | s | horror,intl
+Gremlins 2: The New Batch | 1990 | s | horror,adjacent
+Tales from the Crypt | 1972 | s | horror,intl
+Krampus: The Christmas Devil | 2013 | s | horror
+Mother Krampus | 2017 | s | horror,intl
+Deadly Games | 1989 | s | horror,intl
+Office Christmas Party | 2016 | c |
+Christmas Cracker | 2023 | s | horror,intl
+Silent Night | 2021 | s | horror,intl
+The Children | 2008 | s | horror,intl
+Sint | 2010 | s | horror,intl
+Terrifier 3 | 2024 | s | horror
+Stalled | 2013 | s | horror,intl
+Pooka! | 2018 | s | horror
+Better Watch Out | 2016 | s | horror
+
+## International picks
+Love Actually | 2003 | c | intl
+The Holiday | 2006 | c |
+Joyeux Noël | 2005 | d | intl
+A Christmas Tale | 2008 | d | intl
+Christmas Eve | 2015 | c |
+Rare Exports | 2010 | s | intl
+Tokyo Godfathers | 2003 | s | intl
+Santa & Cie | 2017 | c | intl,fantasy
+Santa Claus Is a Stinker | 1982 | c | intl
+The Christmas Tree | 1969 | d | intl
+Christmas Story | 2007 | d | intl
+A Christmas Gift from Bob | 2020 | d | intl
+Bridget Jones's Diary | 2001 | c | intl
+Christmas in Paradise | 2007 | c |
+Il Natale della mamma imperfetta | 2013 | c | intl
+Natale a Miami | 2005 | c | intl
+Christmas, Again | 2014 | d |
+Juleferie | 2021 | d | intl
+Hjem til jul | 2019 | d | intl
+Julemandens datter | 2018 | c | intl
+Tomte Tummetott och räven | 2007 | s | animated,intl
+Three Wishes for Cinderella | 2021 | s | intl,fantasy
+Christmas in the Heartland | 2017 | d |
+Klaus | 2019 | s | intl
+The Man Who Saved Christmas | 2002 | d |
+Christmas at Maxwell's | 2006 | d |
+Love at First Glance | 2023 | c | intl,romance
+Dear Santa | 2024 | c |
+The Grinch | 2018 | s |
+How the Grinch Stole Christmas | 2000 | c |
+Dr. Seuss' How the Grinch Stole Christmas | 2000 | c |
+The Holiday | 2006 | c |
+Christmas Wedding Planner | 2017 | c | romance
+Christmas Break-In | 2018 | c |
+The Christmas Bunny | 2010 | d |
+A Christmas in Royal Fashion | 2018 | c | romance
+Christmas in Mississippi | 2017 | d |
+The Spirit of Christmas | 2015 | s | fantasy,romance
+The Christmas Project | 2016 | c |
+The Christmas Project Reunion | 2020 | c |
+The Christmas Dragon | 2014 | s | fantasy
+Christmas Do-Over | 2006 | c | fantasy
+12 Dates of Christmas | 2011 | c | romance,fantasy
+Twelve Days of Christmas Eve | 2004 | c | fantasy
+Christmas Every Day | 1996 | c |
+Christmas Caper | 2007 | c |
+Santa Who? | 2000 | c |
+The Night They Saved Christmas | 1984 | d |
+A Dennis the Menace Christmas | 2007 | c |
+Holiday Rush | 2019 | d |
+Jingle Belle | 2018 | c | romance
+The Knight Before Christmas | 2019 | c |
+Last Christmas | 2019 | c |
+Christmas Wish | 2011 | d |
+Christmas Trade | 2015 | c | fantasy
+The Christmas Clause | 2008 | c | fantasy
+Christmas at Cartwright's | 2014 | d | fantasy
+Christmas at Water's Edge | 2004 | d | fantasy
+A Christmas Romance | 1994 | d | romance
+Christmas in My Hometown | 1996 | d | romance
+A Holiday Romance | 1999 | d | romance
+Christmas in the Clouds | 2001 | c | romance
+Ebbie | 1995 | d |
+Ms. Scrooge | 1997 | d |
+A Diva's Christmas Carol | 2000 | c |
+A Carol Christmas | 2003 | c |
+It's Christmas, Carol! | 2012 | c |
+Christmas Carol: The Movie | 2001 | s |
+An Ice Princess for Christmas | 2018 | c |
+A Christmas Carol | 2019 | d |
+The Ghost of Christmas Past | 2023 | d |
+Scrooge: A Christmas Carol | 2022 | s | animated,musical
+Spirited | 2022 | c |
+A Merry Mix-Up | 2022 | c | romance
+Christmas Next Door | 2017 | c |
+A Christmas Switch | 2018 | c | fantasy
+Christmas Inheritance | 2017 | c |
+Christmas Perfection | 2018 | s | fantasy,romance
+Mrs. Miracle | 2009 | c | hallmark,fantasy
+Call Me Mrs. Miracle | 2010 | c | hallmark,fantasy
+Debbie Macomber's Dashing Through the Snow | 2015 | c | hallmark,romance
+Christmas Song | 2012 | c | romance
+Snowglobe | 2007 | s | fantasy,romance
+Window Wonderland | 2013 | c | hallmark,romance
+Holiday Baggage | 2008 | c |
+Holiday in Handcuffs | 2007 | c | romance
+The Twelve Trees of Christmas | 2013 | c | romance
+Ghosts of Christmas Past | 1981 | s | intl
+Holiday Heart | 2000 | d |
+Christmas in Harlem | 2008 | d |
+The Bells of Christmas | 1985 | d |
+A Christmas Wedding Tail | 2011 | c |
+Christmas Belle | 2013 | c | romance
+'Twas the Night | 2001 | c | fantasy
+The Ultimate Christmas Present | 2000 | c | fantasy
+Santa Girl | 2019 | c | fantasy,romance
+Christmas Gift | 2014 | d |
+Christmas Crime Story | 2017 | s | mystery
+Christmas Wedding Baby | 2014 | c | romance
