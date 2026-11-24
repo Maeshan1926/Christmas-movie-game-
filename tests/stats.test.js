@@ -4,7 +4,7 @@ import { summarize, streaks } from '../public/js/shared/stats.js';
 import { pacificDate, seasonOf, daysUntilChristmas, msUntilPacificMidnight, addDays } from '../public/js/shared/dates.js';
 import { availability } from '../public/js/shared/streaming.js';
 import { normalize, isMatch, parseCurated } from '../scripts/build-catalog.mjs';
-import { categorize, spoilerSafe } from '../netlify/lib/movie-record.js';
+import { categorize, spoilerSafe, isChristmasMovie } from '../netlify/lib/movie-record.js';
 import { fixtureCatalog } from './helpers.js';
 
 test('dates: Pacific day, seasons, countdown', () => {
@@ -90,6 +90,9 @@ test('categorize and spoiler-safe synopsis', () => {
   assert.equal(categorize(['Animation', 'Comedy', 'Family']), 'stocking');
   assert.equal(categorize(['Romance', 'Drama']), 'drama');
   assert.equal(categorize(['Action'], 'c'), 'comedy');
+  assert.equal(categorize(['Comedy', 'Family'], 's'), 'comedy', 'stocking needs a stocking genre');
+  assert.equal(categorize(['Drama', 'Romance'], 's'), 'drama');
+  assert.equal(categorize(['Comedy', 'Fantasy'], 's'), 'stocking');
   const long = 'One. Two two two two two two two two two two two two two two two two two two two two two two two two two. Three three three three three three three three three three three three three three three three three three three. Four.';
   assert.ok(spoilerSafe(long).length <= 280);
   assert.ok(!spoilerSafe(long).includes('Four'));
@@ -108,4 +111,12 @@ test('setup errors become actionable messages', async () => {
   assert.match(diagnose(new Error('Supabase GET nights failed (404): {"code":"PGRST205"}')), /schema\.sql/);
   assert.match(diagnose(new Error('Supabase GET nights failed (401): Invalid API key')), /service_role/);
   assert.match(diagnose(new TypeError('fetch failed')), /SUPABASE_URL/);
+});
+
+test('only Christmas-tagged or Christmas-titled movies qualify', () => {
+  assert.ok(isChristmasMovie({ title: 'Die Hard', keywords: { keywords: [{ name: 'christmas party' }, { name: 'skyscraper' }] } }));
+  assert.ok(isChristmasMovie({ title: 'A Christmas Prince', keywords: { keywords: [] } }));
+  assert.ok(isChristmasMovie({ title: 'Krampus', keywords: { keywords: [] } }));
+  assert.ok(!isChristmasMovie({ title: 'Trading Places', keywords: { keywords: [{ name: 'stock market' }] } }));
+  assert.ok(!isChristmasMovie({ title: 'Home for the Holidays', keywords: { keywords: [{ name: 'thanksgiving' }] } }));
 });

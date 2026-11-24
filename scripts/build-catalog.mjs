@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmdbFromEnv } from '../netlify/lib/tmdb.js';
-import { buildMovieRecord, categorize, DETAIL_APPEND } from '../netlify/lib/movie-record.js';
+import { buildMovieRecord, categorize, isChristmasMovie, DETAIL_APPEND } from '../netlify/lib/movie-record.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(root, 'public/data/catalog.json');
@@ -20,7 +20,7 @@ const REPORT = path.join(root, 'public/data/catalog-report.json');
 const args = new Set(process.argv.slice(2));
 const MAX_DISCOVERED = Number(process.env.CATALOG_MAX_DISCOVERED || 450);
 const MIN_VOTES = Number(process.env.CATALOG_MIN_VOTES || 25);
-const KEYWORDS = ['christmas', 'christmas eve', 'santa claus', 'christmas party', 'christmas tree', 'christmas horror', 'christmas romance', 'christmas movie', 'holiday season'];
+const KEYWORDS = ['christmas', 'christmas eve', 'santa claus', 'christmas party', 'christmas tree', 'christmas horror', 'christmas romance', 'christmas movie', 'krampus', 'nativity'];
 
 export function parseCurated(text) {
   const seen = new Set();
@@ -149,11 +149,13 @@ async function main() {
 
   const all = [...hints.keys(), ...discovered];
   const failed = [];
+  const notChristmas = [];
   const movies = (await pool(all, 8, async (id) => {
     try {
       const d = await tmdb.get(`/movie/${id}`, { append_to_response: DETAIL_APPEND, language: 'en-US' });
       if (!d) { failed.push(id); return null; }
       const entry = hints.get(id);
+      if (!isChristmasMovie(d)) { notChristmas.push(`${d.title} (${(d.release_date || '').slice(0, 4)})`); return null; }
       const m = buildMovieRecord(d, { hint: entry?.hint, tags: entry?.tags || [], curated: !!entry });
       if (!entry && ((m.runtime && m.runtime < 40) || m.genres.includes('Documentary'))) return null;
       return m;
@@ -164,10 +166,11 @@ async function main() {
     }
   })).filter(Boolean);
 
+  console.log(`  dropped ${notChristmas.length} titles with no Christmas tag on TMDB`);
   writeCatalog(movies, { source: 'tmdb', generatedAt: new Date().toISOString() }, {
-    curatedVerified: found.length, curatedMissing: missing.sort(), discovered: discovered.length, detailFailures: failed,
+    curatedVerified: found.length, curatedMissing: missing.sort(), notChristmas: notChristmas.sort(), discovered: discovered.length, detailFailures: failed,
   });
-  if (movies.length < 300) {
+  if (movies.length < 200) {
     console.error('Catalog came back unexpectedly small. Check the TMDB key.');
     process.exit(1);
   }
