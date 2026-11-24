@@ -1,6 +1,7 @@
 import { esc, posterUrl, storage, sleep, reducedMotion } from '../util.js';
 import { app, hundredWatchedIds } from '../store.js';
 import { daysUntilChristmas, parseDay, formatDay } from '../shared/dates.js';
+import { CATEGORIES } from '../shared/config.js';
 import { openMovie, posterImg, watchLink, markWatched, askConfirm } from '../components.js';
 import { mutate } from '../store.js';
 import { playDrumroll } from '../fx/sound.js';
@@ -71,6 +72,20 @@ export function renderHome(el) {
         <div class="advent-copy"><b>Pick Tonight's Movie</b><span>${chosenWatched ? 'Tonight is done. Peek at the lineup' : 'Open tonight\'s door'}</span></div>
       </div>
     </button>`}
+
+    <a class="choices" href="#picks" aria-label="See tonight's choices">
+      ${CATEGORIES.map((c) => {
+        const ids = s.night?.picks?.[c.id] || [];
+        const id = ids.includes(s.night?.chosen) ? s.night.chosen : ids[ids.length - 1];
+        const mv = id ? app.movies.get(id) : null;
+        const isChosen = mv && mv.id === s.night?.chosen;
+        const done = mv && (s.watches || []).some((w) => w.tmdb_id === mv.id && !w.returned);
+        return `<span class="choice ${isChosen ? 'chosen' : ''}">
+          <span class="cframe">${mv?.poster ? `<img src="${posterUrl(mv.poster, 'w185')}" alt="" width="185" height="278" loading="lazy">` : `<span class="cname">${esc(mv?.title || 'All watched')}</span>`}
+          ${isChosen ? '<em>Tonight</em>' : ''}${done ? '<i>✓</i>' : ''}${ids.length > 1 ? `<b>${ids.length}</b>` : ''}</span>
+          <small>${c.emoji} ${esc(c.label)}</small></span>`;
+      }).join('')}
+    </a>
 
     <div class="home-row">
       <div class="ring" role="img" aria-label="${done} of ${total} movies watched">

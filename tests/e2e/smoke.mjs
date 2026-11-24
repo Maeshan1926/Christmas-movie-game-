@@ -40,6 +40,7 @@ try {
   const box = await p.locator('#pickBtn').boundingBox();
   if (box.y + box.height > 844 - 64) fail(`Pick button below the fold (${box.y + box.height})`);
   if (!(await p.locator('.ring').textContent()).includes('of 100')) fail('home progress missing');
+  if ((await p.locator('.choices .choice').count()) !== 3) fail('home should show three choices');
   await shot(p, '1-phone-home');
 
   // Picks
@@ -47,6 +48,7 @@ try {
   await p.waitForSelector('.pick');
   await p.waitForTimeout(1200);
   if ((await p.locator('#panel-comedy .pick').count()) !== 1) fail('expected one comedy card');
+  for (const c of ['comedy', 'drama', 'stocking']) if (!(await p.locator(`#panel-${c} .pick`).first().isVisible())) fail(`${c} not visible on phone`);
   await shot(p, '2-phone-picks');
   // Reroll comedy
   await p.click('[data-reroll="comedy"]');

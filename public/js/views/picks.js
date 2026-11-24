@@ -71,6 +71,8 @@ export function renderPicks(el) {
         active = t.dataset.tab;
         el.querySelectorAll('.seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === active)));
         el.querySelectorAll('.cat-panel').forEach((p) => p.classList.toggle('active', p.id === `panel-${active}`));
+        const target = el.querySelector(`#panel-${active}`);
+        window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - 70, behavior: reducedMotion() ? 'auto' : 'smooth' });
       } else if (t.dataset.reroll) {
         const c = t.dataset.reroll;
         const before = new Set(night.picks[c]);

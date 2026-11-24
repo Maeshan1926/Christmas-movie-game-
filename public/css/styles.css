@@ -158,7 +158,7 @@ h1, h2, h3, p { margin: 0; }
 .cat-title { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .cat-title h2 { font-family: var(--marquee); font-weight: 400; font-size: 26px; color: var(--cc); filter: brightness(1.35); }
 .cat-title small { color: var(--muted); font-size: 12px; }
-@media (max-width: 899px) { .cat-panel:not(.active) { display: none; } }
+@media (max-width: 899px) { .cat-title { display: flex !important; } .cat-panel { scroll-margin-top: 70px; } }
 @media (min-width: 900px) {
   .seg { display: none; }
   .lineup { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; }
@@ -348,3 +348,16 @@ details.season[open] > summary { border-bottom: 1px solid rgba(216, 163, 77, .2)
 .ornament:focus-visible { outline: none; }
 .ornament:focus-visible circle, .ornament:focus-visible polygon { stroke: #fff; stroke-width: 2.5; }
 .cat-title { flex-direction: column; align-items: flex-start; gap: 2px; }
+
+/* Tonight's three choices on home */
+.choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; text-decoration: none; color: var(--cream); }
+.choice { display: grid; gap: 4px; justify-items: center; min-width: 0; }
+.choice .cframe { position: relative; width: 100%; aspect-ratio: 2 / 3; max-height: 22vh; border-radius: 10px; overflow: hidden; background: linear-gradient(160deg, var(--forest-3), var(--forest)); box-shadow: 0 6px 14px rgba(0, 0, 0, .5); border: 1px solid rgba(216, 163, 77, .35); }
+.choice .cframe img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.choice .cname { position: absolute; inset: 0; display: grid; place-items: center; padding: 6px; text-align: center; font-family: var(--marquee); font-size: 13px; line-height: 1.1; }
+.choice.chosen .cframe { border: 3px solid var(--gold-2); box-shadow: 0 0 18px rgba(246, 205, 122, .5); }
+.choice em { position: absolute; left: 0; right: 0; bottom: 0; background: var(--gold); color: #3a2604; font-style: normal; font-weight: 800; font-size: 11px; text-align: center; padding: 2px 0; }
+.choice i { position: absolute; right: 4px; top: 4px; width: 22px; height: 22px; border-radius: 50%; background: var(--check); color: #fff; font-style: normal; font-size: 12px; display: grid; place-items: center; }
+.choice b { position: absolute; left: 4px; top: 4px; background: rgba(23, 9, 6, .85); color: var(--gold-2); font-size: 11px; padding: 1px 6px; border-radius: 6px; }
+.choice small { font-size: 12px; font-weight: 800; color: var(--cream-2); white-space: nowrap; }
+@media (min-width: 900px) { .choice .cframe { max-height: none; width: 70%; } }
