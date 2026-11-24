@@ -45,8 +45,11 @@ export function configError(env = process.env) {
 }
 
 export function apiFromEnv(env = process.env, extra = {}) {
-  const store = env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY
-    ? createSupabaseStore({ url: env.SUPABASE_URL, key: env.SUPABASE_SERVICE_ROLE_KEY })
+  const clean = (v) => String(v || '').trim().replace(/^["']|["']$/g, '');
+  const supaUrl = clean(env.SUPABASE_URL).replace(/\/(rest\/v1)?\/?$/, '');
+  const supaKey = clean(env.SUPABASE_SERVICE_ROLE_KEY).replace(/^bearer\s+/i, '');
+  const store = supaUrl && supaKey
+    ? createSupabaseStore({ url: supaUrl, key: supaKey })
     : createMemoryStore({ file: env.DEV_DB_FILE || path.resolve(process.cwd(), '.data/dev-db.json') });
   return createApi({
     store,

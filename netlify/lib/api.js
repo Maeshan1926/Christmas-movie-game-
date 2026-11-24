@@ -21,6 +21,22 @@ function codeMatches(given, expected) {
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** Turn setup failures into a message the family can act on. Only shown after the family code checks out. */
+export function diagnose(err) {
+  const m = String(err?.message || err);
+  if (/PGRST205|Could not find the table|relation .* does not exist/i.test(m)) {
+    return 'Setup: the Supabase tables are missing. In Supabase, open SQL Editor, paste supabase/schema.sql from the repo and click Run.';
+  }
+  if (/Supabase .*\((401|403)\)/.test(m)) {
+    return 'Setup: Supabase rejected the key. SUPABASE_SERVICE_ROLE_KEY must be the secret or service_role key, not the publishable or anon key.';
+  }
+  if (/ENOTFOUND|fetch failed|Invalid URL|getaddrinfo/i.test(m)) {
+    return 'Setup: the server cannot reach SUPABASE_URL. It should look like https://abcdefgh.supabase.co with nothing after .co.';
+  }
+  if (/catalog not found/i.test(m)) return 'Setup: the movie catalog is missing from the server bundle. Redeploy the site.';
+  return `The elves dropped something: ${m.slice(0, 240)}`;
+}
+
 /**
  * @param {object} deps
  * @param {object} deps.store         storage adapter (memory or Supabase)
@@ -242,7 +258,7 @@ export function createApi({ store, getCatalog, familyCode, tmdb = null, now = ()
     } catch (err) {
       if (err instanceof RuleError) return json(err.status, { error: err.message });
       console.error(err);
-      return json(500, { error: 'The elves dropped something. Try again in a moment.' });
+      return json(500, { error: diagnose(err) });
     }
   };
 }

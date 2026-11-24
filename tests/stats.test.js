@@ -102,3 +102,10 @@ test('TMDB credentials are accepted in either variable and cleaned up', async ()
   assert.deepEqual(resolveTmdbAuth({ TMDB_API_KEY: ' Bearer eyJfake.token ' }), { readToken: 'eyJfake.token', apiKey: null });
   assert.deepEqual(resolveTmdbAuth({ TMDB_READ_TOKEN: '"eyJfake"\n' }), { readToken: 'eyJfake', apiKey: null });
 });
+
+test('setup errors become actionable messages', async () => {
+  const { diagnose } = await import('../netlify/lib/api.js');
+  assert.match(diagnose(new Error('Supabase GET nights failed (404): {"code":"PGRST205"}')), /schema\.sql/);
+  assert.match(diagnose(new Error('Supabase GET nights failed (401): Invalid API key')), /service_role/);
+  assert.match(diagnose(new TypeError('fetch failed')), /SUPABASE_URL/);
+});
