@@ -13,7 +13,7 @@ const VIEWS = { tonight: renderTonight, library: renderLibrary, tree: renderTree
 const view = $('#view');
 
 function currentTab() {
-  const t = (location.hash.match(/^#\/(\w+)/) || [])[1];
+  const t = (location.hash.match(/^#\/?(\w+)/) || [])[1];
   return VIEWS[t] ? t : 'tonight';
 }
 

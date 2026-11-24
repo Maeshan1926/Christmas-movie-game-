@@ -2,7 +2,7 @@ import { esc, toast, confetti, sleep, storage, reducedMotion } from '../util.js'
 import { app, mutate, watchedSet } from '../store.js';
 import { CATEGORIES, REROLLS_PER_CATEGORY } from '../shared/config.js';
 import { formatDay } from '../shared/dates.js';
-import { movieCard, markWatched, openRatings } from '../components.js';
+import { movieCard, markWatched, openRatings, askConfirm } from '../components.js';
 import { playDrumroll, playJingle, playPop } from '../fx/sound.js';
 
 const CAT_COLOR = { comedy: 'var(--comedy)', drama: 'var(--drama)', stocking: 'var(--stocking)' };
@@ -51,7 +51,7 @@ export function renderTonight(el) {
       const actions = isWatched
         ? `<button class="btn btn-gold btn-small" data-rate-movie="${id}">⭐ Family ratings</button>`
         : chosen
-          ? `<button class="btn btn-red" data-start="${id}">▶ Start Watching</button>
+          ? `<a class="btn btn-red" data-start="${id}" href="${esc(app.movies.get(id)?.providers?.link || `https://www.themoviedb.org/movie/${id}/watch?locale=US`)}" target="_blank" rel="noopener">▶ Start Watching</a>
              <button class="btn btn-green" data-watched="${id}">✔ Mark as Watched</button>
              <button class="btn btn-ghost btn-small" style="color:var(--ink);border-color:#d8c9b0" data-unchoose>Change pick</button>`
           : `<button class="btn btn-gold" data-choose="${id}">🎄 We pick this one</button>`;
@@ -69,11 +69,11 @@ export function renderTonight(el) {
     </section>`;
   }).join('');
   el.innerHTML = `${head}<div class="lineup">${cols}</div>
-    <p class="subtle" style="text-align:center;font-size:13px;margin-top:18px">Watched something outside the game? Mark it in the <a href="#/library">Library</a>.</p>`;
+    <p class="subtle" style="text-align:center;font-size:13px;margin-top:18px">Watched something outside the game? Mark it in the <a href="#library">Library</a>.</p>`;
   animateIds = new Set();
 
   el.onclick = async (e) => {
-    const t = e.target.closest('button');
+    const t = e.target.closest('button, a[data-start]');
     if (!t) return;
     try {
       if (t.dataset.reroll) {
@@ -94,14 +94,11 @@ export function renderTonight(el) {
         await mutate('/api/tonight/choose', { tmdbId: null });
       } else if (t.dataset.start) {
         const id = Number(t.dataset.start);
-        const m = app.movies.get(id);
         await mutate('/api/tonight/choose', { tmdbId: id, start: true });
-        const url = m.providers?.link || `https://www.themoviedb.org/movie/${id}/watch?locale=US`;
-        window.open(url, '_blank', 'noopener');
         toast('🍿 Enjoy the show! Tap “Mark as Watched” when the credits roll.');
       } else if (t.dataset.watched) {
         const id = Number(t.dataset.watched);
-        if (!confirm(`Mark "${app.movies.get(id).title}" as watched? It leaves future nightly picks.`)) return;
+        if (!(await askConfirm(`Mark "${app.movies.get(id).title}" as watched? It leaves future nightly picks and hangs an ornament.`, { ok: 'Mark watched' }))) return;
         await markWatched(id);
       } else if (t.dataset.rateMovie) {
         openRatings(Number(t.dataset.rateMovie));

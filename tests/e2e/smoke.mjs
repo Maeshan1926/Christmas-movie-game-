@@ -70,6 +70,7 @@ try {
   await p.waitForSelector(`[data-watched="${firstId}"]`);
   if (shots) { await p.waitForTimeout(400); await p.locator('.mcard.chosen').scrollIntoViewIfNeeded(); await p.screenshot({ path: `${shots}/3-phone-chosen.png` }); }
   await p.click(`[data-watched="${firstId}"]`);
+  await p.click('.confirm [data-ans="1"]');
   await p.waitForSelector('.modal .score-btns');
   for (const [m, s] of [['dad', 9], ['mommy', 10], ['lincoln', 9], ['sienna', 9]]) {
     await p.click(`.modal [data-rate="${m}"][data-score="${s}"]`);
@@ -84,7 +85,7 @@ try {
   await d.waitForSelector('.mcard.watched', { timeout: 8000 });
 
   // Tree has one ornament
-  await p.goto(`${base}/#/tree`); await p.waitForSelector('.tree-svg');
+  await p.goto(`${base}/#tree`); await p.waitForSelector('.tree-svg');
   if ((await p.locator('.ornament').count()) !== 1) fail('expected 1 ornament');
   await p.locator('.ornament').first().click();
   await p.waitForSelector('.modal:has-text("Ornament #1")');
@@ -92,7 +93,7 @@ try {
   if (shots) await p.screenshot({ path: `${shots}/5-phone-tree.png`, fullPage: true });
 
   // Library: manual watched with past date
-  await d.goto(`${base}/#/library`); await d.waitForSelector('.tile');
+  await d.goto(`${base}/#library`); await d.waitForSelector('.tile');
   await d.fill('#q', 'Die Hard');
   await d.waitForFunction(() => [...document.querySelectorAll('.tile .t')].some((t) => t.textContent === 'Die Hard'));
   await d.locator('.tile[aria-label^="Die Hard 1988"]').click();
@@ -110,23 +111,23 @@ try {
   await d.selectOption('[data-f="status"]', 'all');
 
   // Scoreboard
-  await d.goto(`${base}/#/scoreboard`); await d.waitForSelector('.stats');
+  await d.goto(`${base}/#scoreboard`); await d.waitForSelector('.stats');
   const watchedCount = await d.locator('.stat .v').first().textContent();
   if (watchedCount.trim() !== '2') fail(`scoreboard count ${watchedCount}`);
   for (const name of ['First Snow', 'Yippee Ki Yay', 'Family Favorite']) {
     if (!(await d.locator('.ach.on', { hasText: name }).count())) fail(`achievement ${name} not unlocked`);
   }
   if (shots) await d.screenshot({ path: `${shots}/7-desk-scoreboard.png`, fullPage: true });
-  await d.goto(`${base}/#/tree`); await d.waitForSelector('.ornament');
+  await d.goto(`${base}/#tree`); await d.waitForSelector('.ornament');
   if ((await d.locator('.ornament').count()) !== 2) fail('expected 2 ornaments on desktop tree');
   if (!(await d.locator('.journey').textContent()).includes('Nov 20, 2026')) fail('manual watch date not saved');
   if (shots) await d.screenshot({ path: `${shots}/8-desk-tree.png` });
-  await d.goto(`${base}/#/tonight`); await d.waitForSelector('.mcard');
+  await d.goto(`${base}/#tonight`); await d.waitForSelector('.mcard');
   if (shots) await d.screenshot({ path: `${shots}/9-desk-tonight.png` });
 
   // No horizontal overflow on phone
   for (const tab of ['tonight', 'library', 'tree', 'scoreboard']) {
-    await p.goto(`${base}/#/${tab}`); await p.waitForTimeout(500);
+    await p.goto(`${base}/#${tab}`); await p.waitForTimeout(500);
     const over = await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     if (over > 1) fail(`phone ${tab} overflows by ${over}px`);
   }

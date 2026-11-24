@@ -92,6 +92,29 @@ export function closeModal() {
 }
 export const modalOpen = () => !!$('#modal-root').firstElementChild;
 
+/* ---------- In-page confirm (native confirm() is blocked in some frames) ---------- */
+export function askConfirm(message, { ok = 'Yes', cancel = 'Cancel', danger = false } = {}) {
+  return new Promise((resolve) => {
+    const root = $('#confirm-root');
+    const prev = document.activeElement;
+    root.innerHTML = `<div class="modal-backdrop confirm-layer">
+      <div class="modal confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-msg">
+        <p id="confirm-msg" style="font-size:17px;font-weight:700;margin:4px 0 16px">${esc(message)}</p>
+        <div class="card-actions" style="justify-content:flex-end">
+          <button class="btn btn-ghost" data-ans="0">${esc(cancel)}</button>
+          <button class="btn ${danger ? 'btn-red' : 'btn-green'}" data-ans="1">${esc(ok)}</button>
+        </div></div></div>`;
+    const layer = root.firstElementChild;
+    const done = (v) => { root.innerHTML = ''; prev?.focus?.(); resolve(v); };
+    layer.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-ans]');
+      if (b) done(b.dataset.ans === '1'); else if (e.target === layer) done(false);
+    });
+    layer.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); done(false); } });
+    layer.querySelector('[data-ans="1"]').focus();
+  });
+}
+
 /* ---------- Ratings ---------- */
 export function ratingEditorHtml(id) {
   const fam = ratingsByMovie(app.state?.ratings || []).get(id);
@@ -185,13 +208,13 @@ export function openMovie(id) {
         try {
           if (act === 'watched') { const day = $('#wdate', body)?.value || pickedDate; closeModal(); await markWatched(id, day); return; }
           if (act === 'return') {
-            if (!confirm('Put this movie back into the nightly rotation? Its ornament and history stay.')) return;
+            if (!(await askConfirm('Put this movie back into the nightly rotation? Its ornament and history stay.', { ok: 'Put back' }))) return;
             await mutate('/api/watched/return', { tmdbId: id }); toast('Back in rotation');
           }
           if (act === 'wish') { await mutate('/api/flag', { tmdbId: id, wishlist: !(flagsMap().get(id)?.wishlist) }); playPop(); }
           if (act === 'exclude') { await mutate('/api/flag', { tmdbId: id, excluded: !(flagsMap().get(id)?.excluded) }); playPop(); }
           if (del) {
-            if (!confirm('Delete this watch entry? Use this only to fix a mistake. The ornament will be removed.')) return;
+            if (!(await askConfirm('Delete this watch entry? Use this only to fix a mistake. The ornament comes off the tree.', { ok: 'Delete', danger: true }))) return;
             await mutate('/api/watched/delete', { watchId: Number(del) }); toast('Entry deleted');
           }
           if (act || del) draw(body);

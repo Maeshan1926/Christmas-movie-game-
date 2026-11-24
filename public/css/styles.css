@@ -340,3 +340,6 @@ h1, h2, h3 { margin: 0; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+.confirm-layer { z-index: 80; align-items: center; padding: 16px; }
+.modal.confirm { max-width: 420px; border-radius: 20px; }
+.modal.confirm .btn-ghost { color: var(--ink); border-color: #d8c9b0; background: #f4ebdc; }

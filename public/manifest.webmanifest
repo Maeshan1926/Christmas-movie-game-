@@ -1,7 +1,7 @@
 {
   "name": "Trunk Family Christmas Movie Challenge",
   "short_name": "Movie Challenge",
-  "start_url": "/#/tonight",
+  "start_url": "/#tonight",
   "display": "standalone",
   "background_color": "#0c1a14",
   "theme_color": "#0c1a14",
