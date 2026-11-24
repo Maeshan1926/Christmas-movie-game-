@@ -1,5 +1,5 @@
 import { esc, toast, confetti, sleep, storage, reducedMotion } from '../util.js';
-import { app, mutate, watchedSet } from '../store.js';
+import { app, mutate, watchedSet, flagsMap } from '../store.js';
 import { CATEGORIES, REROLLS_PER_CATEGORY } from '../shared/config.js';
 import { formatDay } from '../shared/dates.js';
 import { overallRanks } from '../shared/pool.js';
@@ -40,7 +40,20 @@ export function renderTonight(el) {
   }
 
   const watched = watchedSet();
-  const ranks = overallRanks([...app.movies.values()]);
+  // Rank among movies still in play (not watched, not skipped), matching how the nightly top list is built.
+  const flags = flagsMap();
+  const size = app.state.poolSize || 100;
+  const open = [...app.movies.values()].filter((m) => !watched.has(m.id) && !flags.get(m.id)?.excluded);
+  const ranks = overallRanks(open);
+  const rankBadge = (id) => {
+    const r = ranks.get(id);
+    if (!r) return null;
+    const title = 'Ranked by audience score, weighted by number of votes, among movies you have not watched or skipped';
+    if (r <= size) return { label: `🏆 #${r} of top ${size}`, title };
+    if (flags.get(id)?.wishlist) return { label: '⭐ Wishlist pick', title: 'On your wishlist, so it always qualifies' };
+    const c = app.movies.get(id)?.category;
+    return { label: `🎄 Top ${c === 'stocking' ? 'stocking' : c} pick`, title: 'Among the best in its category; every category keeps at least 20 spots in the nightly list' };
+  };
   const cols = CATEGORIES.map((c) => {
     const ids = night.picks[c.id] || [];
     const used = night.rerolls?.[c.id] || 0;
@@ -61,7 +74,7 @@ export function renderTonight(el) {
       const ribbon = chosen ? '<span class="ribbon">Tonight\'s Pick</span>' : isWatched ? '<span class="ribbon green">Watched</span>' : '';
       const anim = animateIds.has(id) ? 'flip-in' : '';
       return `${ids.length > 1 ? `<div class="option-label">${i === 0 ? 'Original pick' : 'Reroll'}</div>` : ''}
-        ${movieCard(m, { actions, cls: `${chosen ? 'chosen' : ''} ${anim}`, ribbon, rank: ranks.get(id), delay: animateIds.size > 1 ? CATEGORIES.findIndex((x) => x.id === c.id) * 0.45 : 0 })}`;
+        ${movieCard(m, { actions, cls: `${chosen ? 'chosen' : ''} ${anim}`, ribbon, rank: rankBadge(id), delay: animateIds.size > 1 ? CATEGORIES.findIndex((x) => x.id === c.id) * 0.45 : 0 })}`;
     }).join('');
     return `<section class="cat-col" aria-labelledby="h-${c.id}">
       <div class="cat-head" style="--cc:${CAT_COLOR[c.id]}">

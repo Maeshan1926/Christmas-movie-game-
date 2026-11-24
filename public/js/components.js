@@ -47,7 +47,7 @@ export function movieCard(m, { actions = '', cls = '', ribbon = '', delay = 0, r
     <div>
       <h3>${esc(m.title)}</h3>
       ${genreLine(m)}
-      <div class="meta">${rank ? `<span class="chip" style="background:#1c3b2c;color:#ffd77a" title="Rank among all ${app.movies.size} movies by weighted audience score">🏆 #${rank} of ${app.movies.size}</span>` : ''}${metaChips(m)}${fam?.avg != null ? `<span class="chip" style="background:#fde2e6;color:#9b0f26">🎄 Family ${fam.avg}</span>` : ''}</div>
+      <div class="meta">${rank ? `<span class="chip" style="background:#1c3b2c;color:#ffd77a" title="${esc(rank.title)}">${esc(rank.label)}</span>` : ''}${metaChips(m)}${fam?.avg != null ? `<span class="chip" style="background:#fde2e6;color:#9b0f26">🎄 Family ${fam.avg}</span>` : ''}</div>
       ${m.overview ? `<p class="synopsis">${esc(m.overview)}</p>` : '<p class="synopsis subtle">No synopsis on file.</p>'}
       ${streamingHtml(m.providers)}
       <div class="card-actions">
