@@ -62,7 +62,8 @@ export function renderHome(el) {
       <div style="width:62px;flex:none">${posterImg(chosen, { size: 'w185', cls: '' }).replace('<img ', '<img style="width:62px;height:93px;object-fit:cover;border-radius:8px" ')}</div>
       <div class="advent-copy" style="flex:1;min-width:0"><span>Tonight's movie</span><b style="font-size:20px">${esc(chosen.title)}</b>
         <div class="actions-row" style="margin-top:8px"><a class="btn btn-gold btn-small" href="${esc(watchLink(chosen))}" target="_blank" rel="noopener" data-start="${chosen.id}">▶ Watch</a>
-        <button class="btn btn-green btn-small" data-finished="${chosen.id}">✓ We finished</button></div></div>
+        <button class="btn btn-green btn-small" data-finished="${chosen.id}">✓ We finished</button>
+        <a class="btn btn-ghost btn-small" href="#picks">See all tonight's picks</a></div></div>
     </div>` : `
     <button class="advent" id="pickBtn" aria-label="Pick tonight's movie">
       <div class="advent-frame">
