@@ -2,7 +2,10 @@
 
 export function createSupabaseStore({ url, key, fetchImpl = fetch }) {
   const base = `${url.replace(/\/$/, '')}/rest/v1`;
-  const headers = { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' };
+  // Legacy service_role keys are JWTs and also go in Authorization. New sb_secret_ keys go in apikey only.
+  const headers = key.startsWith('sb_')
+    ? { apikey: key, 'Content-Type': 'application/json' }
+    : { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' };
 
   async function req(method, pathAndQuery, body, prefer) {
     const res = await fetchImpl(`${base}/${pathAndQuery}`, {
