@@ -56,6 +56,7 @@ export function apiFromEnv(env = process.env, extra = {}) {
     getCatalog: () => loadCatalog(env),
     familyCode: env.FAMILY_CODE,
     tmdb: tmdbFromEnv(env),
+    omdbKey: String(env.OMDB_API_KEY || '').trim() || null,
     poolSize: env.NIGHTLY_POOL_SIZE != null && env.NIGHTLY_POOL_SIZE !== '' ? Number(env.NIGHTLY_POOL_SIZE) : undefined,
     ...extra,
   });

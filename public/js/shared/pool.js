@@ -36,3 +36,28 @@ export function nightlyPool(catalog, { watched, excluded, wishlist, size = DEFAU
   for (const m of open) if (wishlist.has(m.id)) pool.add(m.id);
   return pool;
 }
+
+/**
+ * The Christmas 100: a fixed, ranked list frozen once and kept forever.
+ * Movies the family already watched stay in (progress is preserved), every category keeps
+ * at least 20% of the slots, and the rest fill by weighted audience score.
+ * Returns ids in rank order (index 0 = #1).
+ */
+export function buildHundred(catalog, { keep = [], size = DEFAULT_POOL_SIZE } = {}) {
+  const rated = catalog.filter((m) => m.votes > 0);
+  const mean = rated.length ? rated.reduce((s, m) => s + (m.score || 0), 0) / rated.length : 6;
+  const ranked = [...catalog].sort((a, b) => rankScore(b, mean) - rankScore(a, mean) || a.title.localeCompare(b.title));
+  const byId = new Map(catalog.map((m) => [m.id, m]));
+  const chosen = new Set(keep.filter((id) => byId.has(id)).slice(0, size));
+  const floor = Math.floor(size * 0.2);
+  for (const c of CATEGORY_IDS) {
+    let have = [...chosen].filter((id) => byId.get(id).category === c).length;
+    for (const m of ranked) {
+      if (have >= floor || chosen.size >= size) break;
+      if (m.category === c && !chosen.has(m.id)) { chosen.add(m.id); have += 1; }
+    }
+  }
+  for (const m of ranked) { if (chosen.size >= size) break; chosen.add(m.id); }
+  const order = new Map(ranked.map((m, i) => [m.id, i]));
+  return [...chosen].sort((a, b) => order.get(a) - order.get(b));
+}

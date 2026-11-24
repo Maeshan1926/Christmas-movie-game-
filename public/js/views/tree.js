@@ -1,125 +1,123 @@
-import { esc, posterHtml, posterUrl, storage } from '../util.js';
-import { app } from '../store.js';
-import { summarize, seasonsWithData } from '../shared/stats.js';
+import { esc, posterUrl, storage } from '../util.js';
+import { app, hundredWatchedIds, firstWatch } from '../store.js';
+import { ratingsByMovie } from '../shared/stats.js';
 import { formatDay, daysUntilChristmas } from '../shared/dates.js';
 import { categoryById } from '../shared/config.js';
 import { openModal, openMovie, closeModal } from '../components.js';
 
-export const ORN = { comedy: '#e23b4a', drama: '#f2c14e', stocking: '#9b7bff' };
-let scope = null;
+export const ORN = { comedy: '#d63a4e', drama: '#e6b544', stocking: '#9b7bff' };
+const APEX_Y = 58; const BASE_Y = 500; const HALF_BASE = 182;
+
+function halfWidth(y) { return (HALF_BASE * (y - APEX_Y)) / (BASE_Y - APEX_Y); }
 
 function rng(seed) {
   let a = seed;
   return () => { a = (a * 1664525 + 1013904223) % 4294967296; return a / 4294967296; };
 }
 
-/** Ornament slots inside the tree silhouette, spread in a stable shuffled order. */
-function slots(count) {
-  const spacing = count <= 36 ? 38 : count <= 70 ? 29 : count <= 120 ? 22 : 17;
-  const pts = [];
-  const top = 92; const bottom = 418; const apexY = 60; const halfBase = 168;
-  for (let y = top, row = 0; y <= bottom; y += spacing * 0.86, row += 1) {
-    const half = (halfBase * (y - apexY)) / (430 - apexY) - spacing * 0.35;
-    for (let x = 200 - half + ((row % 2) * spacing) / 2; x <= 200 + half; x += spacing) pts.push([x, y]);
-  }
+/** Exactly `n` hooks spread inside the tree, in a stable scattered fill order. */
+function hooks(n) {
+  const layout = (s) => {
+    const pts = [];
+    for (let y = APEX_Y + s * 1.4, row = 0; y <= BASE_Y - s * 0.5; y += s * 0.88, row += 1) {
+      const hw = halfWidth(y) - s * 0.45;
+      for (let x = 200 - hw + ((row % 2) * s) / 2; x <= 200 + hw + 0.01; x += s) pts.push([x, y]);
+    }
+    return pts;
+  };
+  let lo = 10; let hi = 60;
+  for (let i = 0; i < 30; i += 1) { const mid = (lo + hi) / 2; if (layout(mid).length >= n) lo = mid; else hi = mid; }
+  const s = lo;
+  let pts = layout(s);
+  // Trim extras evenly so exactly n remain.
+  while (pts.length > n) pts.splice(Math.floor((pts.length * 0.618 * (pts.length % 7 + 1)) % pts.length), 1);
   const r = rng(1225);
   for (let i = pts.length - 1; i > 0; i -= 1) { const j = Math.floor(r() * (i + 1)); [pts[i], pts[j]] = [pts[j], pts[i]]; }
-  return { pts, radius: spacing * (count <= 36 ? 0.42 : 0.36) };
+  return { pts, radius: Math.min(13, s * 0.4) };
 }
 
-function treeSvg(entries, { starOn, gifts, seenCount }) {
-  const { pts, radius } = slots(entries.length);
-  const tiers = [
-    [200, 50, 95, 170], [200, 120, 140, 270], [200, 200, 185, 430],
-  ].reverse().map(([cx, ty, hw, by]) => `<polygon points="${cx},${ty} ${cx - hw},${by} ${cx + hw},${by}" fill="url(#pine)" stroke="#0e2a1b" stroke-width="3" stroke-linejoin="round"/>`).join('');
-  const garland = [[150, 160, 250, 150], [110, 245, 290, 230], [70, 340, 330, 320], [40, 415, 360, 405]]
-    .map(([x1, y1, x2, y2]) => `<path d="M${x1},${y1} Q200,${Math.max(y1, y2) + 34} ${x2},${y2}" fill="none" stroke="#e8b04a" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round" opacity=".85"/>`).join('');
+function star(cx, cy, r, attrs = '') {
+  const pts = Array.from({ length: 10 }, (_, i) => {
+    const a = (Math.PI / 5) * i - Math.PI / 2; const rr = i % 2 === 0 ? r : r * 0.45;
+    return `${(cx + rr * Math.cos(a)).toFixed(1)},${(cy + rr * Math.sin(a)).toFixed(1)}`;
+  }).join(' ');
+  return `<polygon points="${pts}" ${attrs}/>`;
+}
+
+function treeSvg(entries, total, { seen, toppers }) {
+  const { pts, radius } = hooks(total);
+  const tiers = [[APEX_Y - 6, 150, 112], [118, 300, 158], [210, BASE_Y, HALF_BASE + 6]].reverse()
+    .map(([ty, by, hw]) => `<path d="M200 ${ty} L${200 - hw} ${by} Q200 ${by + 18} ${200 + hw} ${by} Z" fill="url(#pine)" stroke="#0b2417" stroke-width="2" stroke-linejoin="round"/>`).join('');
+  const garland = [[160, 150, 240, 140], [118, 232, 282, 220], [80, 318, 320, 304], [52, 404, 348, 392], [30, 478, 370, 470]]
+    .map(([x1, y1, x2, y2]) => `<path d="M${x1} ${y1} Q200 ${Math.max(y1, y2) + 30} ${x2} ${y2}" fill="none" stroke="#d4a44a" stroke-width="2.5" stroke-dasharray="1.5 6" stroke-linecap="round" opacity=".8"/>`).join('');
   const lr = rng(7);
   const lightColors = ['#ff3b4f', '#ffd44d', '#3fe07a', '#4db8ff', '#ff8a2b'];
-  const lights = Array.from({ length: 34 }, (_, i) => {
-    const y = 90 + lr() * 330; const half = (168 * (y - 60)) / 370 - 6;
-    const x = 200 + (lr() * 2 - 1) * half;
-    return `<circle class="tree-light" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" fill="${lightColors[i % 5]}" style="animation-delay:${(i % 7) * 0.33}s"/>`;
+  const lights = Array.from({ length: 40 }, (_, i) => {
+    const y = 100 + lr() * 390; const x = 200 + (lr() * 2 - 1) * (halfWidth(y) - 8);
+    return `<circle class="tree-light" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.2" fill="${lightColors[i % 5]}" style="animation-delay:${(i % 7) * 0.4}s"/>`;
   }).join('');
+  const emptyHooks = pts.slice(entries.length).map(([x, y]) => `<circle class="hook" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(radius * 0.28).toFixed(1)}"/>`).join('');
   const ornaments = entries.map((e, i) => {
-    const [x, y] = pts[i % pts.length];
-    const color = ORN[e.movie?.category] || '#ccc';
-    const label = `${i + 1}. ${e.movie?.title || 'Movie'}, watched ${formatDay(e.watch.watched_on)}`;
-    return `<g class="ornament ${i >= seenCount ? 'new' : ''}" tabindex="0" role="button" data-watch="${e.watch.id}" aria-label="${esc(label)}" style="animation-delay:${Math.max(0, i - seenCount) * 0.15}s">
-      <title>${esc(label)}</title>
-      <line x1="${x}" y1="${y - radius - 5}" x2="${x}" y2="${y - radius}" stroke="#d9cdb8" stroke-width="1"/>
-      <rect x="${x - radius * 0.3}" y="${y - radius - 3}" width="${radius * 0.6}" height="4" rx="1" fill="#c9a24a"/>
-      <circle class="ball" cx="${x}" cy="${y}" r="${radius}" fill="${color}" stroke="rgba(0,0,0,.35)" stroke-width="1"/>
-      <circle cx="${x - radius * 0.35}" cy="${y - radius * 0.35}" r="${radius * 0.28}" fill="#fff" opacity=".55"/>
-      ${radius > 9 ? `<text x="${x}" y="${y + radius * 0.35}" text-anchor="middle" font-size="${radius * 0.85}" font-weight="800" fill="rgba(0,0,0,.55)" font-family="Nunito, sans-serif">${i + 1}</text>` : ''}
-    </g>`;
+    const [x, y] = pts[i];
+    const isStar = (i + 1) % 10 === 0;
+    const label = `${i + 1}. ${e.movie.title}, watched ${formatDay(e.watch.watched_on)}`;
+    const body = isStar
+      ? star(x, y, radius * 1.25, 'fill="#f1cf7e" stroke="#a87a22" stroke-width="1.5"')
+      : `<rect x="${(x - radius * 0.3).toFixed(1)}" y="${(y - radius - 3).toFixed(1)}" width="${(radius * 0.6).toFixed(1)}" height="4" rx="1" fill="#c9a24a"/>
+         <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${radius.toFixed(1)}" fill="${ORN[e.movie.category] || '#ccc'}" stroke="rgba(0,0,0,.35)" stroke-width="1"/>
+         <circle cx="${(x - radius * 0.35).toFixed(1)}" cy="${(y - radius * 0.35).toFixed(1)}" r="${(radius * 0.28).toFixed(1)}" fill="#fff" opacity=".5"/>`;
+    return `<g class="ornament ${i >= seen ? 'new' : ''}" tabindex="0" role="button" data-i="${i}" aria-label="${esc(label)}" style="animation-delay:${Math.max(0, i - seen) * 0.12}s"><title>${esc(label)}</title>${body}</g>`;
   }).join('');
-  const giftColors = ['#c8102e', '#2f9a5f', '#7a5ad8', '#e8b04a', '#2c6fbb', '#d63a8a'];
-  const presents = Array.from({ length: gifts }, (_, i) => {
-    const w = 30 + (i % 3) * 6; const h = 22 + (i % 2) * 8;
+  const gifts = Array.from({ length: toppers }, (_, i) => {
+    const w = 30 + (i % 3) * 6; const h = 20 + (i % 2) * 8;
     const x = i % 2 === 0 ? 168 - Math.floor(i / 2 + 1) * 34 : 206 + Math.floor(i / 2) * 34;
-    const c = giftColors[i % giftColors.length];
-    return `<g><rect x="${x}" y="${490 - h}" width="${w}" height="${h}" rx="3" fill="${c}"/><rect x="${x + w / 2 - 3}" y="${490 - h}" width="6" height="${h}" fill="#ffd77a"/><rect x="${x}" y="${490 - h + h / 2 - 3}" width="${w}" height="6" fill="#ffd77a"/></g>`;
+    const c = ['#a3192f', '#2e6b48', '#8a6bd8', '#d4a44a', '#2c6fbb'][i % 5];
+    return `<g><rect x="${x}" y="${546 - h}" width="${w}" height="${h}" rx="3" fill="${c}"/><rect x="${x + w / 2 - 3}" y="${546 - h}" width="6" height="${h}" fill="#f1cf7e"/></g>`;
   }).join('');
-  const starPts = Array.from({ length: 10 }, (_, i) => {
-    const a = (Math.PI / 5) * i - Math.PI / 2; const rr = i % 2 === 0 ? 26 : 11;
-    return `${200 + rr * Math.cos(a)},${40 + rr * Math.sin(a)}`;
-  }).join(' ');
-  return `<svg class="tree-svg" viewBox="0 0 400 500" role="group" aria-label="Our Christmas tree with ${entries.length} ornaments">
-    <defs><linearGradient id="pine" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f7d4f"/><stop offset="1" stop-color="#16452c"/></linearGradient></defs>
-    <ellipse cx="200" cy="492" rx="190" ry="10" fill="rgba(255,255,255,.12)"/>
-    <rect x="182" y="428" width="36" height="52" rx="4" fill="#6b3f22"/>
-    ${tiers}${garland}${lights}${ornaments}${presents}
-    <polygon points="${starPts}" fill="${starOn ? '#ffd77a' : '#7d6a3d'}" stroke="#b8862b" stroke-width="2" class="${starOn ? 'star-glow' : ''}"/>
+  const lit = entries.length >= total || daysUntilChristmas(app.state.today) === 0;
+  return `<svg class="tree-svg" viewBox="0 -6 400 560" role="group" aria-label="Our Christmas tree: ${entries.length} of ${total} ornaments">
+    <defs><linearGradient id="pine" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f7d50"/><stop offset="1" stop-color="#143f28"/></linearGradient></defs>
+    <ellipse cx="200" cy="548" rx="190" ry="9" fill="rgba(246,236,216,.12)"/>
+    <rect x="182" y="500" width="36" height="46" rx="4" fill="#6b3f22"/>
+    ${tiers}${garland}${lights}${emptyHooks}${ornaments}${gifts}
+    ${star(200, 36, 26, `class="topper ${lit ? 'lit' : ''}" fill="${lit ? '#f1cf7e' : '#7d6a3d'}" stroke="#b8862b" stroke-width="2"`)}
   </svg>`;
 }
 
 export function renderTree(el) {
   const s = app.state;
-  if (scope == null) scope = s.season;
-  const seasons = seasonsWithData(s.watches, s.season);
-  const sum = summarize({ movies: app.movies, watches: s.watches, ratings: s.ratings, scope, today: s.today });
-  const entries = sum.entries;
-  const seenKey = `xmas-tree-seen-${scope}`;
-  const seenCount = Math.min(Number(storage(seenKey) || 0), entries.length);
-  const gifts = sum.achievements.filter((a) => a.unlocked).length;
-  const starOn = entries.length >= 25 || (scope === s.season && daysUntilChristmas(s.today) === 0);
-  el.innerHTML = `<div class="stage-head"><div><div class="marquee">${scope === 'lifetime' ? 'Every Christmas, all together' : `Christmas ${scope}`}</div><h1 class="section-title">Our Christmas Tree</h1></div>
-      <div class="season-picker" role="group" aria-label="Season">${seasons.map((y) => `<button aria-pressed="${scope === y}" data-scope="${y}">${y}</button>`).join('')}<button aria-pressed="${scope === 'lifetime'}" data-scope="lifetime">All years</button></div></div>
-    <div class="tree-wrap">
-      <div class="panel" style="padding:12px">
-        ${treeSvg(entries, { starOn, gifts, seenCount })}
-        <div class="legend">${['comedy', 'drama', 'stocking'].map((c) => `<span><i style="background:${ORN[c]}"></i>${categoryById[c].emoji} ${categoryById[c].label}</span>`).join('')}</div>
-        <p class="subtle" style="text-align:center;font-size:13px;margin:10px 0 0">${entries.length} ornament${entries.length === 1 ? '' : 's'} · ${gifts} achievement gift${gifts === 1 ? '' : 's'} under the tree · ${starOn ? 'The star is lit! ✨' : `The star lights at 25 movies or on Christmas Day`}</p>
-      </div>
-      <div class="panel"><h3>Our Journey</h3>
-        ${entries.length ? `<div class="journey">${entries.map((e, i) => `<button data-watch="${e.watch.id}">
-          <span class="num" style="background:${ORN[e.movie?.category] || '#777'}">${i + 1}</span>
-          ${e.movie?.poster ? `<img src="${posterUrl(e.movie.poster, 'w92')}" alt="" loading="lazy">` : '<span class="mini"></span>'}
-          <span><b>${esc(e.movie?.title || 'Unknown movie')}</b><br><small class="subtle">${formatDay(e.watch.watched_on)}${e.rating?.avg != null ? ` · Family ${e.rating.avg}` : ''}</small></span></button>`).join('')}</div>`
-        : '<div class="empty">No ornaments yet. Watch tonight\'s pick to hang the first one. ❄️</div>'}
-      </div>
+  const total = s.hundred?.ids?.length || 100;
+  const fam = ratingsByMovie(s.ratings || []);
+  const entries = [...hundredWatchedIds()]
+    .map((id) => ({ movie: app.movies.get(id), watch: firstWatch(id) }))
+    .filter((e) => e.movie && e.watch)
+    .sort((a, b) => (a.watch.watched_on === b.watch.watched_on ? a.watch.id - b.watch.id : a.watch.watched_on < b.watch.watched_on ? -1 : 1));
+  const seenKey = 'xmas-tree-seen-100';
+  const seen = Math.min(Number(storage(seenKey) || 0), entries.length);
+  const stars = Math.floor(entries.length / 10);
+  el.innerHTML = `<div class="page-head"><div><div class="eyebrow">One ornament per movie · a gold star every 10</div><h1 class="page-title">Our Christmas Tree</h1></div></div>
+    <div class="tree-stage">
+      <div class="tree-count">${entries.length} / ${total}</div>
+      ${treeSvg(entries, total, { seen, toppers: stars })}
+      <div class="tree-meta">${['comedy', 'drama', 'stocking'].map((c) => `<span><i style="background:${ORN[c]}"></i>${categoryById[c].label}</span>`).join('')}<span>⭐ ${stars} gold star${stars === 1 ? '' : 's'}</span></div>
+      ${entries.length ? '<p class="subtle" style="font-size:13px">Tap an ornament to relive the night.</p>' : '<p class="subtle">The tree is bare. Finish tonight\'s movie to hang the first ornament.</p>'}
     </div>`;
   storage(seenKey, String(entries.length));
-  el.querySelectorAll('[data-scope]').forEach((b) => b.addEventListener('click', () => {
-    scope = b.dataset.scope === 'lifetime' ? 'lifetime' : Number(b.dataset.scope);
-    renderTree(el);
-  }));
-  const open = (wid) => {
-    const idx = entries.findIndex((e) => e.watch.id === wid);
-    const e = entries[idx];
-    if (!e?.movie) return;
-    openModal(`Ornament #${idx + 1}`, `<div style="display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:start">
-        ${posterHtml(e.movie)}
-        <div><h3 style="font-size:22px">${esc(e.movie.title)}</h3><p class="subtle" style="color:var(--ink-soft)">${e.movie.year || ''} · ${categoryById[e.movie.category].emoji} ${categoryById[e.movie.category].label}</p>
-        <p><b>Watched:</b> ${formatDay(e.watch.watched_on, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
-        ${e.rating?.avg != null ? `<p><b>Family score:</b> ${e.rating.avg} / 10</p>` : '<p class="subtle" style="color:var(--ink-soft)">Not rated yet.</p>'}
-        <button class="btn btn-red btn-small" id="ornOpen">Open movie</button></div></div>`, {
+  const open = (i) => {
+    const e = entries[i];
+    const r = fam.get(e.movie.id);
+    openModal(`Ornament #${i + 1}${(i + 1) % 10 === 0 ? ' ⭐' : ''}`, `<div class="sheet-hero">
+        ${e.movie.poster ? `<img src="${posterUrl(e.movie.poster, 'w342')}" alt="${esc(e.movie.title)} poster" width="120" height="180">` : '<div class="mini"></div>'}
+        <div style="display:grid;gap:6px"><h3>${esc(e.movie.title)}</h3>
+        <p style="color:var(--ink-soft)">${e.movie.year || ''} · ${categoryById[e.movie.category].label}</p>
+        <p><b>Watched</b> ${formatDay(e.watch.watched_on, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
+        <p>${r?.avg != null ? `<b>Family score</b> ${r.avg} / 10` : '<span style="color:var(--ink-soft)">Not rated yet</span>'}</p></div></div>
+      <button class="btn btn-red btn-block" id="ornOpen">Open movie</button>`, {
       onMount: (body) => body.querySelector('#ornOpen').addEventListener('click', () => { closeModal(); openMovie(e.movie.id); }),
     });
   };
-  el.querySelectorAll('[data-watch]').forEach((g) => {
-    g.addEventListener('click', () => open(Number(g.dataset.watch)));
-    g.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); open(Number(g.dataset.watch)); } });
+  el.querySelectorAll('.ornament').forEach((g) => {
+    g.addEventListener('click', () => open(Number(g.dataset.i)));
+    g.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); open(Number(g.dataset.i)); } });
   });
 }

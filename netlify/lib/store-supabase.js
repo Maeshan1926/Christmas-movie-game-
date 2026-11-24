@@ -68,12 +68,20 @@ export function createSupabaseStore({ url, key, fetchImpl = fetch }) {
         'resolution=merge-duplicates,return=minimal');
     },
     async listCustomMovies() {
-      const rows = await req('GET', 'custom_movies?select=movie');
+      const rows = await req('GET', 'custom_movies?select=movie&tmdb_id=gt.0');
       return rows.map((r) => r.movie);
     },
     async addCustomMovie(movie) {
       await req('POST', 'custom_movies?on_conflict=tmdb_id', { tmdb_id: movie.id, movie },
         'resolution=merge-duplicates,return=minimal');
+    },
+    // App settings live in custom_movies under negative ids, so no schema change is needed.
+    async getSetting(id) {
+      const rows = await req('GET', `custom_movies?tmdb_id=eq.${id}&select=movie`);
+      return rows[0]?.movie ?? null;
+    },
+    async putSettingIfAbsent(id, value) {
+      await req('POST', 'custom_movies?on_conflict=tmdb_id', { tmdb_id: id, movie: value }, 'resolution=ignore-duplicates,return=minimal');
     },
     async getProviders(ids) {
       if (!ids.length) return [];

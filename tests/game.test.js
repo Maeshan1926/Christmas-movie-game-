@@ -251,3 +251,41 @@ test('"seen it" skips a movie for good and swaps in a new pick without using the
     assert.ok(!picksOf((await d.state()).body.night).includes(seenId));
   }
 });
+
+test('the Christmas 100 is frozen once, keeps prior watches, survives catalog changes and new devices', async () => {
+  const { createApi } = await import('../netlify/lib/api.js');
+  const { createMemoryStore } = await import('../netlify/lib/store-memory.js');
+  const { seeded, makeClock } = await import('./helpers.js');
+  const catalog = [];
+  let id = 1;
+  for (const category of ['comedy', 'drama', 'stocking']) {
+    for (let i = 0; i < 30; i += 1) catalog.push({ id, title: `m${id}`, category, genres: [], score: 5 + i / 10, votes: 50 + i * 200, providers: null }), (id += 1);
+  }
+  const store = createMemoryStore();
+  // A movie watched before V2 that would not rank on its own.
+  const lowRanked = catalog.find((m) => m.category === 'drama' && m.votes === 50).id;
+  await store.addWatch({ tmdb_id: lowRanked, watched_on: '2026-11-20', source: 'manual' });
+  const clock = makeClock('2026-12-01T19:00:00-08:00');
+  const mk = (cat, seed) => createApi({ store, getCatalog: async () => cat, familyCode: 'x', now: clock.now, rng: seeded(seed), poolSize: 30 });
+  const call = async (api, path, body) => (await api(new Request(`http://l${path}`, { method: body ? 'POST' : 'GET', headers: { 'x-family-code': 'x' }, body: body && JSON.stringify(body) }))).json();
+
+  const s1 = await call(mk(catalog, 1), '/api/state');
+  assert.equal(s1.hundred.ids.length, 30);
+  assert.ok(s1.hundred.ids.includes(lowRanked), 'earlier watch kept in the 100');
+  for (const c of ['comedy', 'drama', 'stocking']) assert.ok(s1.hundred.ids.filter((x) => catalog.find((m) => m.id === x).category === c).length >= 6);
+
+  // Watching movies does not change the list.
+  await call(mk(catalog, 1), '/api/watched', { tmdbId: s1.hundred.ids[0] });
+  // A later catalog build drops a movie and adds a better one: the 100 stays the same.
+  const dropped = s1.hundred.ids[1];
+  const newer = [...catalog.filter((m) => m.id !== dropped), { id: 999, title: 'New Hit', category: 'comedy', genres: [], score: 9.5, votes: 90000, providers: null }];
+  const s2 = await call(mk(newer, 2), '/api/state');
+  assert.deepEqual(s2.hundred.ids, s1.hundred.ids);
+  assert.ok(s2.hundredExtra.some((m) => m.id === dropped), 'dropped movie served from the frozen copy');
+  for (let d = 0; d < 8; d += 1) {
+    clock.advance(86_400_000);
+    const s = await call(mk(newer, 3 + d), '/api/state');
+    for (const pid of Object.values(s.night.picks).flat()) assert.ok(s1.hundred.ids.includes(pid), 'picks come only from the 100');
+    assert.ok(!Object.values(s.night.picks).flat().includes(s1.hundred.ids[0]), 'watched never suggested');
+  }
+});

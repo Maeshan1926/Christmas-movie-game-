@@ -1,65 +1,57 @@
-import { esc, posterHtml, fmtRuntime, trailerUrl, logoUrl, toast, confetti, $ } from './util.js';
-import { app, api, mutate, watchedSet, flagsMap, activeWatch } from './store.js';
-import { availability, includedServices, AVAILABILITY_LABEL } from './shared/streaming.js';
+import { esc, fmtRuntime, trailerUrl, logoUrl, posterUrl, toast, confetti, reducedMotion, $ } from './util.js';
+import { app, api, mutate, flagsMap, activeWatch, hundredRank, hundredWatchedIds } from './store.js';
+import { availability, includedServices } from './shared/streaming.js';
 import { MEMBERS, categoryById } from './shared/config.js';
 import { ratingsByMovie } from './shared/stats.js';
 import { formatDay } from './shared/dates.js';
 import { playDing, playPop, playTada } from './fx/sound.js';
 
+/* ---------- Posters ---------- */
+export function posterImg(m, { size = 'w342', big = false, eager = false, cls = '' } = {}) {
+  if (!m?.poster) return `<div class="no-poster ${cls}" role="img" aria-label="${esc(m?.title)} poster">${esc(m?.title)}</div>`;
+  const src = posterUrl(m.poster, size);
+  const srcset = big ? ` srcset="${posterUrl(m.poster, 'w342')} 342w, ${posterUrl(m.poster, 'w500')} 500w, ${posterUrl(m.poster, 'w780')} 780w" sizes="(min-width: 900px) 340px, 86vw"` : '';
+  return `<img class="${cls}" src="${src}"${srcset} alt="${esc(m.title)} poster" width="342" height="513" ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async">`;
+}
+
+/* ---------- Facts, scores, streaming ---------- */
+export function factsHtml(m) {
+  const bits = [m.year, fmtRuntime(m.runtime), m.cert].filter(Boolean);
+  return `<div class="facts">${bits.map((b) => `<span>${esc(b)}</span>`).join('<span aria-hidden="true">·</span>')}</div>`;
+}
+
+/** Only real scores: Rotten Tomatoes/IMDb via OMDb when configured, TMDB audience score from the catalog. */
+export function scoresHtml(m) {
+  const s = m.providers?.scores || null;
+  const out = [];
+  if (s?.rt) out.push(`<span class="score rt" title="Rotten Tomatoes critics score">🍅 ${esc(s.rt)}</span>`);
+  if (s?.imdb) out.push(`<span class="score" title="IMDb user rating">IMDb ${esc(s.imdb)}</span>`);
+  if (m.score) out.push(`<span class="score" title="TMDB audience score from ${m.votes} votes">★ ${m.score.toFixed(1)} TMDB</span>`);
+  const fam = ratingsByMovie(app.state?.ratings || []).get(m.id);
+  if (fam?.avg != null) out.push(`<span class="score" style="background:#fbe0e5;color:#8a1426">🎄 Family ${fam.avg}</span>`);
+  return out.length ? `<div class="scores">${out.join('')}</div>` : '';
+}
+
 export function streamingHtml(p) {
   const a = availability(p);
-  const svcs = includedServices(p);
-  const rentBuy = a === 'rent' || a === 'buy'
-    ? [...new Map([...(p.rent || []), ...(p.buy || [])].map((x) => [x.name, x])).values()].slice(0, 6)
-    : [];
-  const list = (a === 'included' ? svcs : rentBuy).slice(0, 8);
-  const logos = list.map((s) => (s.logo
-    ? `<img src="${logoUrl(s.logo)}" alt="${esc(s.name)}" title="${esc(s.name)}" loading="lazy">`
+  if (a === 'unknown') return '<div class="stream">Streaming not verified yet.</div>';
+  if (a === 'none') return '<div class="stream">Not streaming in the US right now.</div>';
+  const list = a === 'included'
+    ? includedServices(p)
+    : [...new Map([...(p.rent || []), ...(p.buy || [])].map((x) => [x.name, x])).values()];
+  const logos = list.slice(0, 6).map((s) => (s.logo
+    ? `<img src="${logoUrl(s.logo)}" alt="${esc(s.name)}" title="${esc(s.name)}" width="30" height="30" loading="lazy">`
     : `<span class="svc">${esc(s.name)}</span>`)).join('');
-  const asOf = p?.asOf ? ` <span class="subtle" style="font-size:11px">as of ${esc(new Date(p.asOf).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }))}</span>` : '';
-  const text = a === 'included' ? `Streaming: ${svcs.map((s) => s.name).slice(0, 3).join(', ')}` : AVAILABILITY_LABEL[a];
-  return `<div class="stream"><span class="label ${a}">${a === 'included' ? '✅ ' : a === 'rent' || a === 'buy' ? '💳 ' : ''}${esc(text)}</span>${a === 'rent' ? ' <span class="subtle">(also to buy)</span>' : ''}${asOf}
-    ${logos ? `<div class="logos">${logos}</div>` : ''}</div>`;
+  const label = a === 'included' ? `<b class="ok">Streaming</b> on ${esc(list.slice(0, 2).map((s) => s.name).join(', '))}` : `<b>${a === 'rent' ? 'Rent' : 'Buy'}</b> only`;
+  const asOf = p.asOf ? ` <span style="opacity:.7">· checked ${esc(new Date(p.asOf).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }))}</span>` : '';
+  return `<div class="stream">${label}${asOf}${logos ? `<div class="logos">${logos}</div>` : ''}</div>`;
 }
 
-export function metaChips(m) {
-  const chips = [];
-  if (m.year) chips.push(`<span class="chip">${m.year}</span>`);
-  if (m.runtime) chips.push(`<span class="chip">⏱ ${fmtRuntime(m.runtime)}</span>`);
-  chips.push(`<span class="chip cert" title="US age rating">${esc(m.cert || 'NR')}</span>`);
-  if (m.score) chips.push(`<span class="chip score" title="TMDB audience score from ${m.votes} votes">★ ${m.score.toFixed(1)}/10</span>`);
-  return chips.join('');
+export function watchLink(m) {
+  return m.providers?.link || `https://www.themoviedb.org/movie/${m.id}/watch?locale=US`;
 }
 
-export function genreLine(m) {
-  const g = (m.genres || []).slice(0, 3).join(' · ');
-  return g ? `<div class="subtle" style="font-size:13px;font-weight:700;color:var(--ink-soft)">${esc(g)}</div>` : '';
-}
-
-/** A full movie card. `actions` is extra HTML appended at the bottom. */
-export function movieCard(m, { actions = '', cls = '', ribbon = '', delay = 0, rank = null } = {}) {
-  const watched = watchedSet().has(m.id);
-  const fam = ratingsByMovie(app.state?.ratings || []).get(m.id);
-  const t = trailerUrl(m);
-  return `<article class="mcard ${cls} ${watched ? 'watched' : ''}" data-id="${m.id}" style="--delay:${delay}s">
-    ${ribbon}
-    <div>${posterHtml(m)}${watched ? '<span class="watched-stamp">Watched</span>' : ''}</div>
-    <div>
-      <h3>${esc(m.title)}</h3>
-      ${genreLine(m)}
-      <div class="meta">${rank ? `<span class="chip" style="background:#1c3b2c;color:#ffd77a" title="${esc(rank.title)}">${esc(rank.label)}</span>` : ''}${metaChips(m)}${fam?.avg != null ? `<span class="chip" style="background:#fde2e6;color:#9b0f26">🎄 Family ${fam.avg}</span>` : ''}</div>
-      ${m.overview ? `<p class="synopsis">${esc(m.overview)}</p>` : '<p class="synopsis subtle">No synopsis on file.</p>'}
-      ${streamingHtml(m.providers)}
-      <div class="card-actions">
-        <a class="link" href="${t.url}" target="_blank" rel="noopener">▶ ${t.exact ? 'Trailer' : 'Find trailer'}</a>
-        ${m.providers?.link ? `<a class="link" href="${esc(m.providers.link)}" target="_blank" rel="noopener">📺 Where to watch</a>` : ''}
-      </div>
-    </div>
-    ${actions ? `<div class="full card-actions">${actions}</div>` : ''}
-  </article>`;
-}
-
-/* ---------- Modal ---------- */
+/* ---------- Modal sheet ---------- */
 let lastFocus = null;
 export function openModal(title, bodyHtml, { onMount } = {}) {
   lastFocus = document.activeElement;
@@ -89,21 +81,19 @@ export function closeModal() {
   $('#modal-root').innerHTML = '';
   document.body.style.overflow = '';
   lastFocus?.focus?.();
+  window.dispatchEvent(new Event('xmas:closed'));
 }
-export const modalOpen = () => !!$('#modal-root').firstElementChild;
+export const modalOpen = () => !!$('#modal-root').firstElementChild || !!document.querySelector('.confirm-screen');
 
-/* ---------- In-page confirm (native confirm() is blocked in some frames) ---------- */
+/* In-page confirm (native confirm() is blocked in some frames). */
 export function askConfirm(message, { ok = 'Yes', cancel = 'Cancel', danger = false } = {}) {
   return new Promise((resolve) => {
     const root = $('#confirm-root');
     const prev = document.activeElement;
-    root.innerHTML = `<div class="modal-backdrop confirm-layer">
-      <div class="modal confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-msg">
-        <p id="confirm-msg" style="font-size:17px;font-weight:700;margin:4px 0 16px">${esc(message)}</p>
-        <div class="card-actions" style="justify-content:flex-end">
-          <button class="btn btn-ghost" data-ans="0">${esc(cancel)}</button>
-          <button class="btn ${danger ? 'btn-red' : 'btn-green'}" data-ans="1">${esc(ok)}</button>
-        </div></div></div>`;
+    root.innerHTML = `<div class="confirm-layer"><div class="confirm-box" role="alertdialog" aria-modal="true" aria-labelledby="confirm-msg">
+      <p id="confirm-msg" style="font-size:17px;font-weight:700;margin:0 0 16px">${esc(message)}</p>
+      <div class="actions-row" style="justify-content:flex-end"><button class="btn btn-ghost" data-ans="0">${esc(cancel)}</button>
+      <button class="btn ${danger ? 'btn-red' : 'btn-green'}" data-ans="1">${esc(ok)}</button></div></div></div>`;
     const layer = root.firstElementChild;
     const done = (v) => { root.innerHTML = ''; prev?.focus?.(); resolve(v); };
     layer.addEventListener('click', (e) => {
@@ -124,8 +114,7 @@ export function ratingEditorHtml(id) {
       .map((n) => `<button type="button" data-rate="${mem.id}" data-score="${n}" aria-pressed="${cur === n}" aria-label="${mem.label} rates ${n} out of 10">${n}</button>`).join('');
     return `<div class="rate-row" style="--mc:${mem.color}"><span class="who">${mem.label}</span><div class="score-btns" role="group" aria-label="${mem.label}'s score">${btns}</div></div>`;
   }).join('');
-  return `<div class="ratings" data-movie="${id}">${rows}
-    <div class="rate-avg">${fam?.avg != null ? `Family score: ${fam.avg} / 10` : 'Tap a number for each person. Ratings are optional.'}</div></div>`;
+  return `<div>${rows}<div class="rate-avg">${fam?.avg != null ? `Family score ${fam.avg} / 10` : 'Ratings are optional'}</div></div>`;
 }
 
 export function bindRatingEditor(container, id, rerender) {
@@ -148,11 +137,37 @@ export function bindRatingEditor(container, id, rerender) {
 export function openRatings(id, { title } = {}) {
   const m = app.movies.get(id);
   const draw = (body) => {
-    body.innerHTML = `<p style="margin-top:0;font-weight:700">${esc(m.title)}${m.year ? ` (${m.year})` : ''}</p>${ratingEditorHtml(id)}
-      <div class="card-actions" style="justify-content:center"><button class="btn btn-red" data-close>Done</button></div>`;
+    body.innerHTML = `<p style="font-weight:800">${esc(m.title)}${m.year ? ` (${m.year})` : ''}</p>${ratingEditorHtml(id)}
+      <button class="btn btn-red btn-block" data-close>Done</button>`;
   };
-  openModal(title || 'Family Ratings', '', {
-    onMount: (body) => { draw(body); bindRatingEditor(body, id, () => draw(body)); },
+  openModal(title || 'Family ratings', '', { onMount: (body) => { draw(body); bindRatingEditor(body, id, () => draw(body)); } });
+}
+
+/* ---------- Celebration ---------- */
+const ORN_COLORS = { comedy: '#d63a4e', drama: '#e6b544', stocking: '#9b7bff' };
+export function ornamentSvg(color, star = false) {
+  if (star) {
+    return '<svg viewBox="0 0 120 140" class="orn"><line x1="60" y1="0" x2="60" y2="22" stroke="#e9dcc0" stroke-width="2"/><polygon points="60,22 74,58 112,60 82,84 93,122 60,100 27,122 38,84 8,60 46,58" fill="#f1cf7e" stroke="#b8862b" stroke-width="3"/></svg>';
+  }
+  return `<svg viewBox="0 0 120 140" class="orn"><line x1="60" y1="0" x2="60" y2="22" stroke="#e9dcc0" stroke-width="2"/><rect x="48" y="20" width="24" height="12" rx="3" fill="#c9a24a"/><circle cx="60" cy="84" r="52" fill="${color}"/><path d="M14 84 Q60 104 106 84" stroke="#f1cf7e" stroke-width="5" fill="none"/><circle cx="42" cy="64" r="12" fill="#fff" opacity=".45"/></svg>`;
+}
+
+export function celebrate(m) {
+  const n = hundredWatchedIds().size;
+  const inHundred = hundredRank(m.id) != null;
+  const star = inHundred && n > 0 && n % 10 === 0;
+  return new Promise((resolve) => {
+    const root = $('#fx-root');
+    root.innerHTML = `<div class="celebrate" role="status">
+      <div>${ornamentSvg(ORN_COLORS[m.category] || '#d63a4e', star)}
+      <h2>${star ? `Gold star! ${n} movies done` : inHundred ? `Ornament #${n} is on the tree` : 'Added to your memories'}</h2>
+      <p>${esc(m.title)}</p></div></div>`;
+    const el = root.firstElementChild;
+    const done = () => { root.innerHTML = ''; resolve(); window.dispatchEvent(new Event('xmas:closed')); };
+    el.addEventListener('click', done);
+    setTimeout(done, reducedMotion() ? 1200 : 2300);
+    confetti(star ? 70 : 40);
+    star ? playTada() : playDing();
   });
 }
 
@@ -160,42 +175,41 @@ export function openRatings(id, { title } = {}) {
 export async function markWatched(id, date) {
   try {
     await mutate('/api/watched', { tmdbId: id, date });
-    playDing();
-    confetti(36);
-    toast('🎄 New ornament on the tree!');
-    openRatings(id, { title: 'How was it? Rate it!' });
+    await celebrate(app.movies.get(id));
+    openRatings(id, { title: 'How was it? Rate it' });
   } catch (err) { toast(err.message, { error: true }); }
 }
 
-/* ---------- Movie detail modal (library, tree, scoreboard) ---------- */
+/* ---------- Movie sheet ---------- */
 export function openMovie(id) {
   const m = app.movies.get(id);
   if (!m) return;
   let pickedDate = app.state.today;
   const draw = (body) => {
     const w = activeWatch(id);
+    const history = (app.state.watches || []).filter((x) => x.tmdb_id === id).sort((a, b) => (a.watched_on < b.watched_on ? 1 : -1));
     const f = flagsMap().get(id) || {};
-    const history = (app.state.watches || []).filter((x) => x.tmdb_id === id);
+    const rank = hundredRank(id);
     const cat = categoryById[m.category];
-    body.innerHTML = `${movieCard(m)}
-      <p class="subtle" style="color:var(--ink-soft);font-size:13px;margin:8px 0 0">${cat.emoji} ${cat.label}${m.curated ? '' : ' · found via TMDB Christmas keywords'}${(m.tags || []).includes('hallmark') ? ' · Hallmark' : ''}</p>
-      <div class="section"><h4>Watching</h4>
-        ${w ? `<p style="margin:0 0 8px">✅ Watched ${formatDay(w.watched_on)}${w.source === 'nightly' ? ' (nightly pick)' : ''}</p>
-          <div class="card-actions"><button class="btn btn-ghost btn-small" data-act="return">↩ Put back in rotation</button></div>`
-        : `<div class="card-actions" style="align-items:center"><label for="wdate" class="sr-only">Date watched</label>
+    const t = trailerUrl(m);
+    body.innerHTML = `<div class="sheet-hero">${m.poster ? `<img src="${posterUrl(m.poster, 'w342')}" alt="${esc(m.title)} poster" width="120" height="180">` : '<div class="mini"></div>'}
+        <div style="display:grid;gap:6px"><div class="eyebrow" style="color:var(--cranberry)">${rank ? `#${rank} of the Christmas 100` : 'Christmas library'} · ${cat.emoji} ${cat.label}</div>
+        <h3>${esc(m.title)}</h3>${factsHtml(m)}${scoresHtml(m)}</div></div>
+      ${m.overview ? `<p style="font-size:14px;line-height:1.5;color:var(--ink-soft)">${esc(m.overview)}</p>` : ''}
+      ${streamingHtml(m.providers)}
+      <div class="actions-row"><a class="btn btn-ghost btn-small" href="${t.url}" target="_blank" rel="noopener">▶ ${t.exact ? 'Trailer' : 'Find trailer'}</a>
+        <a class="btn btn-ghost btn-small" href="${esc(watchLink(m))}" target="_blank" rel="noopener">📺 Where to watch</a></div>
+      <div class="section"><h4>Watched</h4>
+        ${w ? `<p style="margin-bottom:8px"><b style="color:var(--check)">✓ Watched</b> ${formatDay(w.watched_on)}</p>
+          <div class="actions-row"><button class="btn btn-ghost btn-small" data-act="unmark">Unmark watched</button>
+          <button class="btn btn-ghost btn-small" data-act="replay">🔁 Watch again someday</button></div>`
+        : `<div class="actions-row"><label for="wdate" class="sr-only">Date watched</label>
           <input type="date" id="wdate" value="${pickedDate}" max="${app.state.today}">
-          <button class="btn btn-green btn-small" data-act="watched">✔ Mark as watched</button></div>`}
-        ${history.length ? `<details style="margin-top:8px"><summary style="cursor:pointer;font-weight:700">Watch history (${history.length})</summary>
-          ${history.map((h) => `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
-            <span>${formatDay(h.watched_on)}${h.returned ? ' · back in rotation' : ''}</span>
-            <button class="btn btn-ghost btn-small" data-del="${h.id}" aria-label="Delete the ${formatDay(h.watched_on)} entry">Delete entry</button></div>`).join('')}
-        </details>` : ''}
+          <button class="btn btn-green btn-small" data-act="watched">✓ Mark watched</button></div>`}
+        ${history.length && !w ? `<p class="subtle" style="color:var(--ink-soft);font-size:13px;margin-top:8px">Watched before: ${history.map((h) => formatDay(h.watched_on)).join(', ')}. Back in the rotation for a replay.</p>` : ''}
       </div>
-      ${w || history.length ? `<div class="section"><h4>Family ratings</h4>${ratingEditorHtml(id)}</div>` : ''}
-      <div class="section"><h4>Lists</h4><div class="card-actions">
-        <button class="btn ${f.wishlist ? 'btn-gold' : 'btn-ghost'} btn-small" data-act="wish" aria-pressed="${!!f.wishlist}">${f.wishlist ? '⭐ On wishlist' : '☆ Add to wishlist'}</button>
-        <button class="btn ${f.excluded ? 'btn-red' : 'btn-ghost'} btn-small" data-act="exclude" aria-pressed="${!!f.excluded}">${f.excluded ? '🚫 Excluded from picks' : '🚫 Never pick this'}</button>
-      </div><p class="subtle" style="color:var(--ink-soft);font-size:12px;margin:6px 0 0">Wishlist movies show up more often in nightly picks. Excluded movies never appear.</p></div>`;
+      ${history.length ? `<div class="section"><h4>Family ratings</h4>${ratingEditorHtml(id)}</div>` : ''}
+      ${!w ? `<div class="section"><div class="actions-row"><button class="btn ${f.excluded ? 'btn-red' : 'btn-ghost'} btn-small" data-act="skip" aria-pressed="${!!f.excluded}">${f.excluded ? '🚫 Skipped in nightly picks' : '👀 Seen it already, skip in picks'}</button></div></div>` : ''}`;
   };
   openModal(esc(m.title), '', {
     onMount: (body) => {
@@ -204,25 +218,23 @@ export function openMovie(id) {
       body.addEventListener('input', (e) => { if (e.target.id === 'wdate') pickedDate = e.target.value; });
       body.addEventListener('click', async (e) => {
         const act = e.target.closest('[data-act]')?.dataset.act;
-        const del = e.target.closest('[data-del]')?.dataset.del;
+        if (!act) return;
         try {
           if (act === 'watched') { const day = $('#wdate', body)?.value || pickedDate; closeModal(); await markWatched(id, day); return; }
-          if (act === 'return') {
-            if (!(await askConfirm('Put this movie back into the nightly rotation? Its ornament and history stay.', { ok: 'Put back' }))) return;
-            await mutate('/api/watched/return', { tmdbId: id }); toast('Back in rotation');
+          if (act === 'unmark') {
+            if (!(await askConfirm('Unmark this movie? Its watch date and ornament come off. Ratings stay.', { ok: 'Unmark', danger: true }))) return;
+            await mutate('/api/watched/delete', { watchId: activeWatch(id).id }); toast('Unmarked');
           }
-          if (act === 'wish') { await mutate('/api/flag', { tmdbId: id, wishlist: !(flagsMap().get(id)?.wishlist) }); playPop(); }
-          if (act === 'exclude') { await mutate('/api/flag', { tmdbId: id, excluded: !(flagsMap().get(id)?.excluded) }); playPop(); }
-          if (del) {
-            if (!(await askConfirm('Delete this watch entry? Use this only to fix a mistake. The ornament comes off the tree.', { ok: 'Delete', danger: true }))) return;
-            await mutate('/api/watched/delete', { watchId: Number(del) }); toast('Entry deleted');
+          if (act === 'replay') {
+            if (!(await askConfirm('Put this movie back in the nightly picks for a replay? Its history and ornament stay.', { ok: 'Watch again' }))) return;
+            await mutate('/api/watched/return', { tmdbId: id }); toast('Back in the nightly picks');
           }
-          if (act || del) draw(body);
+          if (act === 'skip') { await mutate('/api/flag', { tmdbId: id, excluded: !(flagsMap().get(id)?.excluded) }); playPop(); }
+          draw(body);
         } catch (err) { toast(err.message, { error: true }); }
       });
-      // Pull fresh streaming info for this movie.
       api(`/api/providers?id=${id}`).then((r) => {
-        if (r.providers) { m.providers = r.providers; if (modalOpen()) draw(body); }
+        if (r.providers) { m.providers = r.providers; if ($('#modal-root').firstElementChild) draw(body); }
       }).catch(() => {});
     },
   });

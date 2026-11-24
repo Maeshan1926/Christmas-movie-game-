@@ -43,6 +43,24 @@ export async function loadCatalog() {
 function indexMovies() {
   app.movies = new Map(app.catalog.map((m) => [m.id, m]));
   for (const m of app.state?.customMovies || []) if (!app.movies.has(m.id)) app.movies.set(m.id, m);
+  for (const m of app.state?.hundredExtra || []) if (m && !app.movies.has(m.id)) app.movies.set(m.id, m);
+}
+
+/** The frozen Christmas 100 in rank order, as movie records. */
+export function hundredMovies() {
+  return (app.state?.hundred?.ids || []).map((id) => app.movies.get(id)).filter(Boolean);
+}
+export function hundredRank(id) {
+  const i = (app.state?.hundred?.ids || []).indexOf(id);
+  return i < 0 ? null : i + 1;
+}
+/** Movies in the 100 that the family has ever finished (replays included). */
+export function hundredWatchedIds() {
+  const ids = new Set(app.state?.hundred?.ids || []);
+  return new Set((app.state?.watches || []).filter((w) => ids.has(w.tmdb_id)).map((w) => w.tmdb_id));
+}
+export function firstWatch(id) {
+  return (app.state?.watches || []).filter((w) => w.tmdb_id === id).sort((a, b) => (a.watched_on < b.watched_on ? -1 : 1))[0] || null;
 }
 
 export function allMovies() { return [...app.movies.values()]; }

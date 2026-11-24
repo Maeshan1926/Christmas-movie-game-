@@ -55,6 +55,8 @@ export function createMemoryStore({ file } = {}) {
     },
     async listCustomMovies() { return clone(Object.values(db.custom || {}).map((r) => r.movie)); },
     async addCustomMovie(movie) { db.custom = db.custom || {}; db.custom[movie.id] = { movie }; save(); },
+    async getSetting(id) { return clone(db.settings?.[id] ?? null); },
+    async putSettingIfAbsent(id, value) { db.settings = db.settings || {}; if (!(id in db.settings)) { db.settings[id] = clone(value); save(); } },
     async getProviders(ids) { return clone(ids.map((id) => db.providers[id]).filter(Boolean)); },
     async putProviders(tmdbId, providers) {
       db.providers[tmdbId] = { tmdb_id: tmdbId, providers, fetched_at: new Date().toISOString() }; save();

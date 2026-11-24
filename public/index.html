@@ -4,18 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Trunk Family Christmas Movie Challenge</title>
-  <meta name="description" content="Our nightly Christmas movie game: three picks, one reroll each, a family scoreboard and a tree full of memories.">
-  <meta name="theme-color" content="#0c1a14">
+  <meta name="description" content="Our nightly Christmas movie advent: three picks, one reroll each, the Christmas 100 and a tree full of memories.">
+  <meta name="theme-color" content="#0e2419">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Movie Challenge">
+  <meta name="apple-mobile-web-app-title" content="Christmas 100">
   <link rel="icon" href="/img/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/img/icon-180.png">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://image.tmdb.org">
-  <link href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@400;700&family=Nunito:wght@400;600;800&family=Bungee&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Limelight&family=Mountains+of+Christmas:wght@700&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
@@ -23,24 +23,21 @@
   <div class="lights" aria-hidden="true"></div>
 
   <header class="topbar">
-    <a class="brand" href="#tonight" aria-label="Home: Tonight's Movies">
+    <a class="brand" href="#tonight" aria-label="Home">
       <span class="brand-small">The Trunk Family</span>
       <span class="brand-big">Christmas Movie Challenge</span>
     </a>
-    <div class="topbar-right">
-      <div class="countdown" id="countdown" aria-live="polite"></div>
-      <button class="icon-btn" id="soundToggle" aria-pressed="false" aria-label="Sound effects off" title="Sound effects">🔇</button>
-    </div>
+    <button class="icon-btn" id="soundToggle" aria-pressed="false" aria-label="Sound effects off" title="Sound effects">🔇</button>
   </header>
 
-  <nav class="tabs" aria-label="Main">
-    <a href="#tonight" data-tab="tonight"><span aria-hidden="true">🎬</span><b>Tonight's Movies</b></a>
-    <a href="#library" data-tab="library"><span aria-hidden="true">📚</span><b>Movie Library</b></a>
-    <a href="#tree" data-tab="tree"><span aria-hidden="true">🎄</span><b>Our Christmas Tree</b></a>
-    <a href="#scoreboard" data-tab="scoreboard"><span aria-hidden="true">🏆</span><b>Family Scoreboard</b></a>
-  </nav>
-
   <main id="view" tabindex="-1"></main>
+
+  <nav class="tabs" aria-label="Main">
+    <a href="#tonight" data-tab="tonight"><span aria-hidden="true">🎬</span><b>Tonight</b></a>
+    <a href="#top100" data-tab="top100"><span aria-hidden="true">🏆</span><b>Top 100</b></a>
+    <a href="#tree" data-tab="tree"><span aria-hidden="true">🎄</span><b>Our Tree</b></a>
+    <a href="#memories" data-tab="memories"><span aria-hidden="true">📜</span><b>Memories</b></a>
+  </nav>
 
   <footer class="credits">
     <p>Movie data from TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB. Streaming availability by JustWatch via TMDB.</p>
@@ -48,6 +45,7 @@
 
   <div id="modal-root"></div>
   <div id="confirm-root"></div>
+  <div id="fx-root" aria-hidden="true"></div>
   <div id="toast" role="status" aria-live="polite"></div>
   <noscript><p class="noscript">This Christmas game needs JavaScript turned on.</p></noscript>
   <script type="module" src="/js/app.js"></script>

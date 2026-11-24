@@ -3,9 +3,9 @@
 export const APP_NAME = 'The Trunk Family Christmas Movie Challenge';
 
 export const CATEGORIES = [
-  { id: 'comedy', label: 'Comedy', emoji: '🎅', blurb: 'Christmas comedies, rom-coms and family laughs' },
-  { id: 'drama', label: 'Drama', emoji: '🎄', blurb: 'Heartwarmers, romance, classics and big feelings' },
-  { id: 'stocking', label: 'Mystery Stocking', emoji: '🎁', blurb: 'Action, animation, horror, fantasy, adventure or mystery' },
+  { id: 'comedy', label: 'Comedy', emoji: '🎅', blurb: 'Comedies, rom-coms and family laughs' },
+  { id: 'drama', label: 'Drama', emoji: '🎄', blurb: 'Heartwarmers, classics and big feelings' },
+  { id: 'stocking', label: 'Wild Card', emoji: '✨', blurb: 'Action, animation, horror, fantasy, adventure or mystery' },
 ];
 export const CATEGORY_IDS = CATEGORIES.map((c) => c.id);
 export const categoryById = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]));

@@ -5,7 +5,9 @@ import { pacificDate, seasonOf, msUntilPacificMidnight } from '../../public/js/s
 import { activeWatchedIds } from '../../public/js/shared/stats.js';
 import { generateNight, rerollPatch, replacePatch, allPicked, RuleError, RECENT_NIGHTS_TO_AVOID } from './selection.js';
 import { fetchProviders } from './tmdb.js';
-import { nightlyPool, DEFAULT_POOL_SIZE } from '../../public/js/shared/pool.js';
+import { buildHundred, DEFAULT_POOL_SIZE } from '../../public/js/shared/pool.js';
+
+export const HUNDRED_SETTING_ID = -100;
 import { buildMovieRecord, DETAIL_APPEND } from './movie-record.js';
 
 const json = (status, body) => new Response(JSON.stringify(body), {
@@ -48,8 +50,29 @@ export function diagnose(err) {
  * @param {() => Date} [deps.now]
  * @param {() => number} [deps.rng]
  */
-export function createApi({ store, getCatalog, familyCode, tmdb = null, now = () => new Date(), rng = Math.random, poolSize = DEFAULT_POOL_SIZE }) {
-  async function fullCatalog() {
+export function createApi({ store, getCatalog, familyCode, tmdb = null, now = () => new Date(), rng = Math.random, poolSize = DEFAULT_POOL_SIZE, omdbKey = null, fetchImpl = fetch }) {
+  let hundredMemo = null;
+
+  /** The frozen Christmas 100. Created once from the catalog, then never changes. */
+  async function hundred() {
+    if (hundredMemo) return hundredMemo;
+    if (!(poolSize > 0) || !store.getSetting) return null;
+    let s = await store.getSetting(HUNDRED_SETTING_ID);
+    if (!s?.ids?.length) {
+      const [catalog, watches] = await Promise.all([baseCatalog(), store.listWatches()]);
+      const byId = new Map(catalog.map((m) => [m.id, m]));
+      const keep = [...new Set([...watches].sort((a, b) => (a.watched_on < b.watched_on ? -1 : 1)).map((w) => w.tmdb_id))];
+      const ids = buildHundred(catalog, { keep, size: poolSize });
+      await store.putSettingIfAbsent(HUNDRED_SETTING_ID, {
+        kind: 'christmas100', frozenAt: now().toISOString(), ids, movies: ids.map((id) => byId.get(id)),
+      });
+      s = await store.getSetting(HUNDRED_SETTING_ID);
+    }
+    hundredMemo = s;
+    return s;
+  }
+
+  async function baseCatalog() {
     const base = await getCatalog();
     const custom = store.listCustomMovies ? await store.listCustomMovies() : [];
     if (!custom.length) return base;
@@ -57,9 +80,17 @@ export function createApi({ store, getCatalog, familyCode, tmdb = null, now = ()
     return [...base, ...custom.filter((m) => !ids.has(m.id))];
   }
 
+  /** Catalog plus frozen copies of any Christmas 100 movie a later catalog build dropped. */
+  async function fullCatalog() {
+    const [base, h] = await Promise.all([baseCatalog(), hundred()]);
+    if (!h) return base;
+    const ids = new Set(base.map((m) => m.id));
+    return [...base, ...(h.movies || []).filter((m) => m && !ids.has(m.id))];
+  }
+
   async function selectionContext(today) {
-    const [catalog, watches, flags, recentNights] = await Promise.all([
-      fullCatalog(), store.listWatches(), store.listFlags(), store.recentNights(today, RECENT_NIGHTS_TO_AVOID),
+    const [catalog, watches, flags, recentNights, h] = await Promise.all([
+      fullCatalog(), store.listWatches(), store.listFlags(), store.recentNights(today, RECENT_NIGHTS_TO_AVOID), hundred(), store.listWatches(), store.listFlags(), store.recentNights(today, RECENT_NIGHTS_TO_AVOID),
     ]);
     const watched = activeWatchedIds(watches);
     const excluded = new Set(flags.filter((f) => f.excluded).map((f) => f.tmdb_id));
@@ -69,7 +100,7 @@ export function createApi({ store, getCatalog, familyCode, tmdb = null, now = ()
       watched,
       excluded,
       wishlist,
-      pool: poolSize > 0 ? nightlyPool(catalog, { watched, excluded, wishlist, size: poolSize }) : null,
+      pool: h ? new Set(h.ids) : null,
       recent: new Set(recentNights.flatMap((n) => CATEGORY_IDS.flatMap((c) => n.picks?.[c] || []))),
       rng,
     };
@@ -97,12 +128,26 @@ export function createApi({ store, getCatalog, familyCode, tmdb = null, now = ()
     if (tmdb && stale.length) {
       const results = await Promise.allSettled(stale.map(async (id) => {
         const p = await fetchProviders(tmdb, id);
+        p.scores = await fetchScores(id).catch(() => null);
         out[id] = p;
         await store.putProviders(id, p);
       }));
       results.forEach((r) => { if (r.status === 'rejected') console.warn('provider refresh failed', r.reason?.message); });
     }
     return out;
+  }
+
+  /** Critic and audience scores from OMDb (Rotten Tomatoes, IMDb). Only when OMDB_API_KEY is set. */
+  async function fetchScores(id) {
+    if (!omdbKey || !tmdb) return null;
+    const ext = await tmdb.get(`/movie/${id}/external_ids`);
+    if (!ext?.imdb_id) return null;
+    const res = await fetchImpl(`https://www.omdbapi.com/?i=${encodeURIComponent(ext.imdb_id)}&apikey=${encodeURIComponent(omdbKey)}`);
+    if (!res.ok) return null;
+    const d = await res.json();
+    if (d.Response === 'False') return null;
+    const find = (src) => (d.Ratings || []).find((r) => r.Source === src)?.Value || null;
+    return { rt: find('Rotten Tomatoes'), imdb: d.imdbRating && d.imdbRating !== 'N/A' ? d.imdbRating : null, asOf: now().toISOString() };
   }
 
   async function state() {
@@ -113,6 +158,8 @@ export function createApi({ store, getCatalog, familyCode, tmdb = null, now = ()
       store.listWatches(), store.listRatings(), store.listFlags(),
       store.listCustomMovies ? store.listCustomMovies() : [],
     ]);
+    const h = await hundred();
+    const baseIds = new Set((await baseCatalog()).map((m) => m.id));
     let providers = {};
     try {
       providers = await freshProviders([...allPicked(night)]);
@@ -132,6 +179,8 @@ export function createApi({ store, getCatalog, familyCode, tmdb = null, now = ()
       providers,
       tmdbLive: !!tmdb,
       poolSize,
+      hundred: h ? { ids: h.ids, frozenAt: h.frozenAt } : null,
+      hundredExtra: h ? (h.movies || []).filter((m) => m && !baseIds.has(m.id)) : [],
       storage: store.kind,
     };
   }

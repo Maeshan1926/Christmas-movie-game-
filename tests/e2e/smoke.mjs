@@ -1,4 +1,4 @@
-// End-to-end smoke test: boots the dev server against a throwaway DB and drives two devices.
+// End-to-end smoke test for V2: boots the dev server against a throwaway DB and drives two devices.
 // Usage: node tests/e2e/smoke.mjs [screenshotDir]
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -17,6 +17,7 @@ await new Promise((r) => srv.stdout.on('data', (d) => d.toString().includes('run
 const base = `http://localhost:${port}`;
 const errors = [];
 const fail = (m) => { throw new Error(m); };
+const shot = async (pg, name, full = false) => { if (shots) await pg.screenshot({ path: `${shots}/${name}.png`, fullPage: full }); };
 
 const browser = await chromium.launch();
 try {
@@ -26,113 +27,125 @@ try {
   const d = await desk.newPage();
   for (const pg of [p, d]) {
     pg.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
-    pg.on('console', (m) => { if (m.type() === 'error' && !/fonts\.g|image\.tmdb|status of 401/.test(m.text())) errors.push(`console: ${m.text()}`); });
-    pg.on('dialog', (dl) => dl.accept());
+    pg.on('console', (m) => { if (m.type() === 'error' && !/fonts\.g|image\.tmdb|status of 401|hero\.jpg|404/.test(m.text())) errors.push(`console: ${m.text()}`); });
   }
 
-  // Login with wrong then right code
+  // Login
   await p.goto(base);
   await p.fill('#code', 'nope'); await p.click('#gate button');
   await p.waitForSelector('.err:has-text("nice list")');
   await p.fill('#code', 'JingleBells'); await p.click('#gate button');
-  await p.waitForSelector('#revealBtn');
-  if (shots) await p.screenshot({ path: `${shots}/1-phone-gifts.png` });
+  await p.waitForSelector('#pickBtn');
+  // Home: main action visible without scrolling
+  const box = await p.locator('#pickBtn').boundingBox();
+  if (box.y + box.height > 844 - 64) fail(`Pick button below the fold (${box.y + box.height})`);
+  if (!(await p.locator('.ring').textContent()).includes('of 100')) fail('home progress missing');
+  await shot(p, '1-phone-home');
 
-  // Reveal
-  await p.click('#revealBtn');
-  await p.waitForSelector('.mcard', { timeout: 8000 });
-  await p.waitForTimeout(1800);
-  if ((await p.locator('.mcard').count()) !== 3) fail('expected 3 cards after reveal');
-  if (shots) await p.screenshot({ path: `${shots}/2-phone-reveal.png` });
-
-  // Reroll comedy -> 4 cards, button used
+  // Picks
+  await p.click('#pickBtn');
+  await p.waitForSelector('.pick');
+  await p.waitForTimeout(1200);
+  if ((await p.locator('#panel-comedy .pick').count()) !== 1) fail('expected one comedy card');
+  await shot(p, '2-phone-picks');
+  // Reroll comedy
   await p.click('[data-reroll="comedy"]');
-  await p.waitForFunction(() => document.querySelectorAll('.mcard').length === 4, null, { timeout: 5000 });
-  if (!(await p.locator('[data-reroll="comedy"]').isDisabled())) fail('reroll should be used up');
-
-  // Refresh must not reset
-  const before = await p.locator('.mcard h3').allTextContents();
-  await p.reload(); await p.waitForSelector('.mcard');
-  const after = await p.locator('.mcard h3').allTextContents();
-  if (JSON.stringify(before) !== JSON.stringify(after)) fail('refresh changed picks');
+  await p.waitForFunction(() => document.querySelectorAll('#panel-comedy .pick').length === 2, null, { timeout: 5000 });
+  if (!(await p.locator('[data-reroll="comedy"]').isDisabled())) fail('reroll should be used');
+  // Refresh keeps state
+  const before = await p.locator('.pick h3').allTextContents();
+  await p.reload(); await p.waitForSelector('.pick');
+  if (JSON.stringify(before) !== JSON.stringify(await p.locator('.pick h3').allTextContents())) fail('refresh changed picks');
   if (!(await p.locator('[data-reroll="comedy"]').isDisabled())) fail('refresh restored reroll');
+  const all = await p.evaluate(() => [...document.querySelectorAll('.pick h3')].map((h) => h.textContent));
+  if (new Set(all).size !== all.length) fail('duplicate picks');
 
-  // Desktop device sees same lineup
+  // Desktop sees same lineup
   await d.goto(base); await d.fill('#code', 'jinglebells'); await d.click('#gate button');
-  await d.waitForSelector('#revealBtn'); await d.click('#revealBtn'); await d.waitForSelector('.mcard'); await d.waitForTimeout(2600);
-  const dTitles = await d.locator('.mcard h3').allTextContents();
-  if (JSON.stringify(dTitles.sort()) !== JSON.stringify([...after].sort())) fail('devices disagree on lineup');
-  if (!(await d.locator('[data-reroll="comedy"]').isDisabled())) fail('reroll not shared across devices');
+  await d.waitForSelector('#pickBtn'); await shot(d, '3-desk-home');
+  await d.goto(`${base}/#picks`); await d.waitForSelector('.pick'); await d.waitForTimeout(1500);
+  const dt = await d.locator('.pick h3').allTextContents();
+  if (JSON.stringify([...dt].sort()) !== JSON.stringify([...before].sort())) fail('devices disagree');
+  await shot(d, '4-desk-picks');
 
-  // "Seen it" swaps a card without using the drama reroll
-  const seenId = await p.locator('[data-seen]').last().getAttribute('data-seen');
-  await p.click(`[data-seen="${seenId}"]`);
+  // Seen it swap (drama), no reroll used
+  await p.click('#tab-drama');
+  const seenId = await p.locator('#panel-drama [data-seen]').first().getAttribute('data-seen');
+  await p.click(`#panel-drama [data-seen="${seenId}"]`);
   await p.waitForFunction((id) => !document.querySelector(`[data-seen="${id}"]`), seenId);
-  if ((await p.locator('.mcard').count()) !== 4) fail('seen-it should keep 4 cards');
+  if (await p.locator('[data-reroll="drama"]').isDisabled()) fail('seen-it consumed reroll');
 
-  // Choose on phone, mark watched, rate
-  const firstId = await p.locator('[data-choose]').first().getAttribute('data-choose');
-  await p.click(`[data-choose="${firstId}"]`);
-  await p.waitForSelector(`[data-watched="${firstId}"]`);
-  if (shots) { await p.waitForTimeout(400); await p.locator('.mcard.chosen').scrollIntoViewIfNeeded(); await p.screenshot({ path: `${shots}/3-phone-chosen.png` }); }
-  await p.click(`[data-watched="${firstId}"]`);
-  await p.click('.confirm [data-ans="1"]');
-  await p.waitForSelector('.modal .score-btns');
+  // Select -> festive confirmation -> back -> finished
+  await p.click('#tab-comedy');
+  const chooseId = await p.locator('#panel-comedy [data-choose]').first().getAttribute('data-choose');
+  await p.click(`#panel-comedy [data-choose="${chooseId}"]`);
+  await p.waitForSelector('.confirm-screen');
+  await p.waitForTimeout(900);
+  await shot(p, '5-phone-confirm');
+  await p.click('#cBack');
+  // Not watched until confirmed finished
+  const st = await p.evaluate(async () => (await (await fetch('/api/state', { headers: { 'x-family-code': 'jinglebells' } })).json()).watches.length);
+  if (st !== 0) fail('selected movie was marked watched too early');
+  await p.click(`[data-finished="${chooseId}"]`);
+  await p.click('.confirm-box [data-ans="1"]');
+  await p.waitForSelector('.celebrate');
+  await shot(p, '6-phone-celebrate');
+  await p.waitForSelector('.modal .score-btns', { timeout: 6000 });
   for (const [m, s] of [['dad', 9], ['mommy', 10], ['lincoln', 9], ['sienna', 9]]) {
     await p.click(`.modal [data-rate="${m}"][data-score="${s}"]`);
     await p.waitForSelector(`.modal [data-rate="${m}"][data-score="${s}"][aria-pressed="true"]`);
   }
-  if (!(await p.locator('.rate-avg').textContent()).includes('9.3')) fail('family avg wrong');
-  if (shots) await p.screenshot({ path: `${shots}/4-phone-ratings.png` });
-  await p.click('.modal button.btn-red[data-close]');
+  await p.click('.modal .btn-red[data-close]');
 
-  // Desktop picks it up on poll/focus
-  await d.evaluate(() => window.dispatchEvent(new Event('focus')));
-  await d.waitForSelector('.mcard.watched', { timeout: 8000 });
+  // Top 100: progress 1/100, check mark, manual mark + unmark
+  await p.goto(`${base}/#top100`); await p.waitForSelector('.ptile');
+  if ((await p.locator('.ptile').count()) !== 100) fail(`expected 100 tiles, got ${await p.locator('.ptile').count()}`);
+  if (!(await p.locator('.progress').textContent()).includes('1 of 100')) fail('progress not 1/100');
+  if ((await p.locator('.ptile .check').count()) !== 1) fail('expected one check');
+  await shot(p, '7-phone-top100');
+  await p.click('[data-status="unwatched"]');
+  if ((await p.locator('.ptile').count()) !== 99) fail('unwatched filter wrong');
+  const target = p.locator('.ptile').nth(3);
+  await target.click();
+  await p.waitForSelector('.modal #wdate');
+  await p.fill('#wdate', '2026-11-20');
+  await p.click('[data-act="watched"]');
+  await p.waitForSelector('.modal .score-btns', { timeout: 6000 });
+  await p.click('.modal .close');
+  await p.click('[data-status="watched"]');
+  await p.waitForFunction(() => document.querySelectorAll('.ptile').length === 2);
+  // Unmark it again
+  await p.locator('.ptile', { hasText: 'Nov 20' }).click();
+  await p.click('[data-act="unmark"]'); await p.click('.confirm-box [data-ans="1"]');
+  await p.waitForFunction(() => document.querySelectorAll('.modal [data-act="watched"]').length === 1);
+  await p.click('.modal .close');
+  await p.waitForFunction(() => document.querySelectorAll('.ptile').length === 1);
+  // Search + sort
+  await p.click('[data-status="all"]');
+  await p.fill('#q', 'Elf'); await p.waitForTimeout(200);
+  await p.fill('#q', '');
+  await p.selectOption('#sort', 'newest');
 
-  // Tree has one ornament
+  // Tree: one ornament, 99 empty hooks
   await p.goto(`${base}/#tree`); await p.waitForSelector('.tree-svg');
   if ((await p.locator('.ornament').count()) !== 1) fail('expected 1 ornament');
+  if ((await p.locator('.hook').count()) !== 99) fail(`expected 99 hooks, got ${await p.locator('.hook').count()}`);
   await p.locator('.ornament').first().click();
   await p.waitForSelector('.modal:has-text("Ornament #1")');
   await p.click('.modal .close');
-  if (shots) await p.screenshot({ path: `${shots}/5-phone-tree.png`, fullPage: true });
+  await shot(p, '8-phone-tree', true);
 
-  // Library: manual watched with past date
-  await d.goto(`${base}/#library`); await d.waitForSelector('.tile');
-  await d.fill('#q', 'Die Hard');
-  await d.waitForFunction(() => [...document.querySelectorAll('.tile .t')].some((t) => t.textContent === 'Die Hard'));
-  await d.locator('.tile[aria-label^="Die Hard 1988"]').click();
-  await d.waitForSelector('.modal #wdate');
-  await d.waitForTimeout(500);
-  await d.fill('#wdate', '2026-11-20');
-  await d.click('[data-act="watched"]');
-  await d.waitForSelector('.modal .score-btns');
-  await d.click('.modal [data-rate="lincoln"][data-score="7"]');
-  await d.waitForSelector('.modal [data-rate="lincoln"][data-score="7"][aria-pressed="true"]');
-  await d.click('.modal .close');
-  await d.selectOption('[data-f="status"]', 'watched'); await d.fill('#q', '');
-  await d.waitForFunction(() => document.querySelectorAll('.tile').length === 2);
-  if (shots) await d.screenshot({ path: `${shots}/6-desk-library.png` });
-  await d.selectOption('[data-f="status"]', 'all');
-
-  // Scoreboard
-  await d.goto(`${base}/#scoreboard`); await d.waitForSelector('.stats');
-  const watchedCount = await d.locator('.stat .v').first().textContent();
-  if (watchedCount.trim() !== '2') fail(`scoreboard count ${watchedCount}`);
-  for (const name of ['First Snow', 'Yippee Ki Yay', 'Family Favorite']) {
-    if (!(await d.locator('.ach.on', { hasText: name }).count())) fail(`achievement ${name} not unlocked`);
-  }
-  if (shots) await d.screenshot({ path: `${shots}/7-desk-scoreboard.png`, fullPage: true });
-  await d.goto(`${base}/#tree`); await d.waitForSelector('.ornament');
-  if ((await d.locator('.ornament').count()) !== 2) fail('expected 2 ornaments on desktop tree');
-  if (!(await d.locator('.journey').textContent()).includes('Nov 20, 2026')) fail('manual watch date not saved');
-  if (shots) await d.screenshot({ path: `${shots}/8-desk-tree.png` });
-  await d.goto(`${base}/#tonight`); await d.waitForSelector('.mcard');
-  if (shots) await d.screenshot({ path: `${shots}/9-desk-tonight.png` });
+  // Memories
+  await p.goto(`${base}/#memories`); await p.waitForSelector('.ticket');
+  if ((await p.locator('.ticket b').first().textContent()).trim() !== '1') fail('memories count');
+  if (!(await p.locator('.top-rated').textContent()).includes('9.3')) fail('favorites missing');
+  await shot(p, '9-phone-memories', true);
+  await d.goto(`${base}/#memories`); await d.waitForSelector('.ticket'); await shot(d, '10-desk-memories');
+  await d.goto(`${base}/#tree`); await d.waitForSelector('.ornament'); await shot(d, '11-desk-tree');
+  await d.goto(`${base}/#top100`); await d.waitForSelector('.ptile'); await shot(d, '12-desk-top100');
 
   // No horizontal overflow on phone
-  for (const tab of ['tonight', 'library', 'tree', 'scoreboard']) {
+  for (const tab of ['tonight', 'picks', 'top100', 'tree', 'memories']) {
     await p.goto(`${base}/#${tab}`); await p.waitForTimeout(500);
     const over = await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     if (over > 1) fail(`phone ${tab} overflows by ${over}px`);

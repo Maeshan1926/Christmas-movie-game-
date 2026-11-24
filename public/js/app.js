@@ -1,47 +1,54 @@
 import { $, $$, esc, toast, storage } from './util.js';
 import { app, api, loadCatalog, refresh, subscribe, startPolling, ApiError } from './store.js';
-import { daysUntilChristmas } from './shared/dates.js';
 import { startSnow, hangLights } from './fx/snow.js';
 import { setSound, soundEnabled, playJingle } from './fx/sound.js';
 import { modalOpen } from './components.js';
-import { renderTonight } from './views/tonight.js';
-import { renderLibrary } from './views/library.js';
+import { renderHome } from './views/home.js';
+import { renderPicks } from './views/picks.js';
+import { renderTop100 } from './views/top100.js';
 import { renderTree } from './views/tree.js';
-import { renderScoreboard } from './views/scoreboard.js';
+import { renderMemories } from './views/memories.js';
 
-const VIEWS = { tonight: renderTonight, library: renderLibrary, tree: renderTree, scoreboard: renderScoreboard };
+// Route -> [render, nav tab]. Old V1 links keep working.
+const ROUTES = {
+  tonight: [renderHome, 'tonight'],
+  picks: [renderPicks, 'tonight'],
+  top100: [renderTop100, 'top100'],
+  tree: [renderTree, 'tree'],
+  memories: [renderMemories, 'memories'],
+  library: [renderTop100, 'top100'],
+  scoreboard: [renderMemories, 'memories'],
+};
 const view = $('#view');
 
-function currentTab() {
+function route() {
   const t = (location.hash.match(/^#\/?(\w+)/) || [])[1];
-  return VIEWS[t] ? t : 'tonight';
+  return ROUTES[t] ? t : 'tonight';
 }
 
+let pending = false;
 function render({ fromPoll = false } = {}) {
-  const tab = currentTab();
+  const r = route();
+  const [fn, tab] = ROUTES[r];
   $$('.tabs a').forEach((a) => (a.dataset.tab === tab ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
+  document.body.classList.toggle('home', r === 'tonight');
   if (!app.state) return;
-  // Avoid yanking the page out from under someone mid-interaction during background sync.
-  if (fromPoll && (modalOpen() || (tab === 'library' && document.activeElement?.id === 'q'))) return;
-  VIEWS[tab](view, { keepScroll: fromPoll });
-  updateCountdown();
-}
-
-function updateCountdown() {
-  if (!app.state) return;
-  const d = daysUntilChristmas(app.state.today);
-  $('#countdown').innerHTML = d === 0 ? '<b>🎄</b>Merry Christmas!' : `<b>${d}</b>${d === 1 ? 'sleep' : 'sleeps'} to Christmas`;
+  // Never yank the page out from under someone mid-interaction during background sync.
+  if (fromPoll && (modalOpen() || document.querySelector('.celebrate') || document.activeElement?.id === 'q')) { pending = true; return; }
+  pending = false;
+  fn(view, { keepScroll: fromPoll });
 }
 
 function renderGate(message = '') {
-  view.innerHTML = `<section class="gate"><form class="panel" id="gate">
+  document.body.classList.remove('home');
+  view.innerHTML = `<section class="gate"><form id="gate">
     <div style="font-size:54px" aria-hidden="true">🎄</div>
     <h1>Welcome Home</h1>
-    <p class="subtle">Enter the Trunk family code to join tonight's game on this device.</p>
+    <p class="subtle">Enter the Trunk family code to join tonight's movie on this device.</p>
     <label class="sr-only" for="code">Family code</label>
     <input id="code" type="password" autocomplete="current-password" placeholder="Family code" required>
     <div class="err" role="alert">${esc(message)}</div>
-    <button class="btn btn-red" style="width:100%" type="submit">Let's Watch</button>
+    <button class="btn btn-red btn-block" type="submit">Let's Watch</button>
   </form></section>`;
   $('#code').focus();
   $('#gate').addEventListener('submit', async (e) => {
@@ -52,9 +59,7 @@ function renderGate(message = '') {
       app.code = code;
       storage('xmas-family-code', code);
       await boot();
-    } catch (err) {
-      $('.err').textContent = err.message;
-    }
+    } catch (err) { $('.err').textContent = err.message; }
   });
 }
 
@@ -71,7 +76,7 @@ async function boot() {
       renderGate(hadCode ? 'That code no longer works. Enter the current family code.' : '');
       return;
     }
-    view.innerHTML = `<div class="panel empty">⚠️ ${esc(err.message)}<br><br><button class="btn btn-gold" id="retry">Try again</button></div>`;
+    view.innerHTML = `<div class="empty">⚠️ ${esc(err.message)}<br><br><button class="btn btn-gold" id="retry">Try again</button></div>`;
     $('#retry').addEventListener('click', boot);
     return;
   }
@@ -80,9 +85,9 @@ async function boot() {
 }
 
 subscribe((changed) => { if (changed) render({ fromPoll: true }); });
+window.addEventListener('xmas:closed', () => { if (pending) setTimeout(() => render({ fromPoll: true }), 0); });
 window.addEventListener('hashchange', () => { render(); view.focus({ preventScroll: true }); window.scrollTo(0, 0); });
 
-// Sound toggle
 const sb = $('#soundToggle');
 const syncSound = () => {
   sb.textContent = soundEnabled() ? '🔔' : '🔇';
@@ -96,4 +101,5 @@ startSnow($('#snow'));
 hangLights($('.lights'));
 window.addEventListener('resize', () => hangLights($('.lights')));
 
+render();
 if (app.code) boot(); else renderGate();

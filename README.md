@@ -1,5 +1,7 @@
 # The Trunk Family Christmas Movie Challenge
 
+**V2:** nightly advent-style picks from a fixed, ranked Christmas 100, a 100-ornament tree, and family memories by season.
+
 A nightly Christmas movie game. Three wrapped picks every night (Comedy, Drama, Mystery Stocking), one reroll per category, a shared family scoreboard and a Christmas tree that gains an ornament for every movie watched.
 
 ## What you need (all free tiers)
@@ -29,6 +31,20 @@ No paid services are used.
 5. **Install on phones.** Open the site in Safari > Share > Add to Home Screen.
 
 To refresh the catalog (new releases, streaming changes), trigger a redeploy. Streaming info for tonight's picks and any opened movie also refreshes live every 72 hours.
+
+## Optional: Rotten Tomatoes scores
+
+Add `OMDB_API_KEY` in Netlify (free key at omdbapi.com, 1,000 requests/day) and redeploy. Cards then show Rotten Tomatoes and IMDb scores when OMDb has them. Without it, cards show the TMDB audience score only. No score is ever estimated.
+
+## Hero artwork
+
+Put the banner image at `public/img/hero.jpg` (landscape, about 1600px wide, under 400 KB). The home screen uses it automatically; without it, an illustrated fallback shows.
+
+## The Christmas 100
+
+- Frozen the first time V2 runs: the top 100 by weighted audience score, at least 20 per category, plus every movie already watched. Stored in Supabase (`custom_movies` row with id -100), so later catalog builds never change the list or its ranks.
+- Nightly picks come only from unwatched, unskipped movies in the 100.
+- Progress counts any movie in the 100 the family has finished, replays included.
 
 ## How the game works
 
