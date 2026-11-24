@@ -25,6 +25,7 @@ export function createTmdb({ apiKey, readToken, fetchImpl = fetch, timeoutMs = 8
         return get(path, params, attempt + 1);
       }
       if (res.status === 404) return null;
+      if (res.status === 401) throw new Error('TMDB rejected the key (401). In Netlify, set TMDB_READ_TOKEN to the API Read Access Token (starts with eyJ) or TMDB_API_KEY to the 32-character API Key, then redeploy. A regenerated key replaces the old one.');
       if (!res.ok) throw new Error(`TMDB ${path} -> ${res.status}`);
       return await res.json();
     } catch (err) {
@@ -39,9 +40,19 @@ export function createTmdb({ apiKey, readToken, fetchImpl = fetch, timeoutMs = 8
   return { get };
 }
 
+/** Accepts either credential in either variable, trims stray whitespace and a pasted "Bearer " prefix. */
+export function resolveTmdbAuth(env = process.env) {
+  const clean = (v) => String(v || '').trim().replace(/^bearer\s+/i, '').replace(/^["']|["']$/g, '');
+  const values = [clean(env.TMDB_READ_TOKEN), clean(env.TMDB_API_KEY)].filter(Boolean);
+  const readToken = values.find((v) => v.startsWith('eyJ')) || null;
+  const apiKey = values.find((v) => /^[0-9a-f]{32}$/i.test(v)) || null;
+  if (!readToken && !apiKey && values.length) return { readToken: values[0], apiKey: null };
+  return { readToken, apiKey: readToken ? null : apiKey };
+}
+
 export function tmdbFromEnv(env = process.env, opts = {}) {
   if (!tmdbConfigured(env)) return null;
-  return createTmdb({ apiKey: env.TMDB_API_KEY, readToken: env.TMDB_READ_TOKEN, ...opts });
+  return createTmdb({ ...resolveTmdbAuth(env), ...opts });
 }
 
 const slim = (arr = []) => arr

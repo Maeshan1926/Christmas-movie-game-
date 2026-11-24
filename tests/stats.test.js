@@ -94,3 +94,11 @@ test('categorize and spoiler-safe synopsis', () => {
   assert.ok(spoilerSafe(long).length <= 280);
   assert.ok(!spoilerSafe(long).includes('Four'));
 });
+
+test('TMDB credentials are accepted in either variable and cleaned up', async () => {
+  const { resolveTmdbAuth } = await import('../netlify/lib/tmdb.js');
+  const fakeKey = '0123456789abcdef0123456789abcdef';
+  assert.deepEqual(resolveTmdbAuth({ TMDB_READ_TOKEN: fakeKey }), { readToken: null, apiKey: fakeKey });
+  assert.deepEqual(resolveTmdbAuth({ TMDB_API_KEY: ' Bearer eyJfake.token ' }), { readToken: 'eyJfake.token', apiKey: null });
+  assert.deepEqual(resolveTmdbAuth({ TMDB_READ_TOKEN: '"eyJfake"\n' }), { readToken: 'eyJfake', apiKey: null });
+});
