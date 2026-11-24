@@ -5,6 +5,7 @@ import { pacificDate, seasonOf, msUntilPacificMidnight } from '../../public/js/s
 import { activeWatchedIds } from '../../public/js/shared/stats.js';
 import { generateNight, rerollPatch, allPicked, RuleError, RECENT_NIGHTS_TO_AVOID } from './selection.js';
 import { fetchProviders } from './tmdb.js';
+import { nightlyPool, DEFAULT_POOL_SIZE } from '../../public/js/shared/pool.js';
 import { buildMovieRecord, DETAIL_APPEND } from './movie-record.js';
 
 const json = (status, body) => new Response(JSON.stringify(body), {
@@ -47,7 +48,7 @@ export function diagnose(err) {
  * @param {() => Date} [deps.now]
  * @param {() => number} [deps.rng]
  */
-export function createApi({ store, getCatalog, familyCode, tmdb = null, now = () => new Date(), rng = Math.random }) {
+export function createApi({ store, getCatalog, familyCode, tmdb = null, now = () => new Date(), rng = Math.random, poolSize = DEFAULT_POOL_SIZE }) {
   async function fullCatalog() {
     const base = await getCatalog();
     const custom = store.listCustomMovies ? await store.listCustomMovies() : [];
@@ -60,11 +61,15 @@ export function createApi({ store, getCatalog, familyCode, tmdb = null, now = ()
     const [catalog, watches, flags, recentNights] = await Promise.all([
       fullCatalog(), store.listWatches(), store.listFlags(), store.recentNights(today, RECENT_NIGHTS_TO_AVOID),
     ]);
+    const watched = activeWatchedIds(watches);
+    const excluded = new Set(flags.filter((f) => f.excluded).map((f) => f.tmdb_id));
+    const wishlist = new Set(flags.filter((f) => f.wishlist).map((f) => f.tmdb_id));
     return {
       catalog,
-      watched: activeWatchedIds(watches),
-      excluded: new Set(flags.filter((f) => f.excluded).map((f) => f.tmdb_id)),
-      wishlist: new Set(flags.filter((f) => f.wishlist).map((f) => f.tmdb_id)),
+      watched,
+      excluded,
+      wishlist,
+      pool: poolSize > 0 ? nightlyPool(catalog, { watched, excluded, wishlist, size: poolSize }) : null,
       recent: new Set(recentNights.flatMap((n) => CATEGORY_IDS.flatMap((c) => n.picks?.[c] || []))),
       rng,
     };
@@ -126,6 +131,7 @@ export function createApi({ store, getCatalog, familyCode, tmdb = null, now = ()
       customMovies: custom,
       providers,
       tmdbLive: !!tmdb,
+      poolSize,
       storage: store.kind,
     };
   }

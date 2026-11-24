@@ -199,3 +199,36 @@ test('recently offered movies are avoided when the pool allows', async () => {
   }
   assert.equal(new Set(seen).size, seen.length, 'no repeats within two weeks when the pool is big enough');
 });
+
+test('nightly picks only come from the top-ranked pool, which refills as movies are watched', async () => {
+  const { createApi } = await import('../netlify/lib/api.js');
+  const { createMemoryStore } = await import('../netlify/lib/store-memory.js');
+  const { seeded, makeClock } = await import('./helpers.js');
+  // 40 movies per category; higher ids get better scores and more votes.
+  const catalog = [];
+  let id = 1;
+  for (const category of ['comedy', 'drama', 'stocking']) {
+    for (let i = 0; i < 40; i += 1) catalog.push({ id, title: `m${id}`, category, genres: [], score: 5 + i / 10, votes: 50 + i * 200, providers: null, id_rank: i }), (id += 1);
+  }
+  const store = createMemoryStore();
+  const clock = makeClock('2026-12-01T19:00:00-08:00');
+  const api = createApi({ store, getCatalog: async () => catalog, familyCode: 'x', now: clock.now, rng: seeded(9), poolSize: 30 });
+  const call = async (method, path, body) => (await api(new Request(`http://l${path}`, { method, headers: { 'x-family-code': 'x' }, body: body && JSON.stringify(body) }))).json();
+  const best = (c, n) => catalog.filter((m) => m.category === c).sort((a, b) => b.votes - a.votes).slice(0, n).map((m) => m.id);
+  const allowed = new Set(['comedy', 'drama', 'stocking'].flatMap((c) => best(c, 10)));
+  for (let d = 0; d < 6; d += 1) {
+    const s = await call('GET', '/api/state');
+    for (const pid of Object.values(s.night.picks).flat()) assert.ok(allowed.has(pid), `pick ${pid} outside top 30`);
+    clock.advance(86_400_000);
+  }
+  // Watch the best comedy: the 11th-best comedy enters the pool.
+  const top = best('comedy', 11);
+  await call('POST', '/api/watched', { tmdbId: top[0] });
+  const { nightlyPool } = await import('../public/js/shared/pool.js');
+  const pool = nightlyPool(catalog, { watched: new Set([top[0]]), excluded: new Set(), wishlist: new Set(), size: 30 });
+  assert.equal(pool.size, 30, 'pool refills to full size');
+  assert.ok(!pool.has(top[0]), 'watched movie leaves the pool');
+  // Wishlisted movies outside the top always qualify.
+  const worst = catalog.find((m) => m.category === 'drama' && m.votes === 50).id;
+  assert.ok(nightlyPool(catalog, { watched: new Set(), excluded: new Set(), wishlist: new Set([worst]), size: 30 }).has(worst));
+});

@@ -3,6 +3,7 @@ import { app, allMovies, api, mutate, watchedSet, flagsMap } from '../store.js';
 import { CATEGORIES } from '../shared/config.js';
 import { allServiceNames, availability } from '../shared/streaming.js';
 import { ratingsByMovie } from '../shared/stats.js';
+import { nightlyPool } from '../shared/pool.js';
 import { openMovie, openModal, closeModal } from '../components.js';
 
 const PAGE = 60;
@@ -30,8 +31,19 @@ function facets(movies) {
   };
 }
 
+function rotation(movies) {
+  const flags = [...flagsMap().values()];
+  return nightlyPool(movies, {
+    watched: watchedSet(),
+    excluded: new Set(flags.filter((x) => x.excluded).map((x) => x.tmdb_id)),
+    wishlist: new Set(flags.filter((x) => x.wishlist).map((x) => x.tmdb_id)),
+    size: app.state.poolSize || 100,
+  });
+}
+
 function apply(movies) {
   const watched = watchedSet(); const flags = flagsMap(); const fam = ratingsByMovie(app.state.ratings);
+  const pool = f.status === 'rotation' ? rotation(movies) : null;
   const q = f.q.trim().toLowerCase();
   let out = movies.filter((m) => {
     if (q && !`${m.title} ${m.originalTitle || ''} ${m.year || ''}`.toLowerCase().includes(q)) return false;
@@ -41,6 +53,7 @@ function apply(movies) {
     if (f.status === 'wishlist' && !fl.wishlist) return false;
     if (f.status === 'excluded' && !fl.excluded) return false;
     if (f.status === 'streaming' && availability(m.providers) !== 'included') return false;
+    if (pool && !pool.has(m.id)) return false;
     if (f.category !== 'all' && m.category !== f.category) return false;
     if (f.genre !== 'all' && !(m.genres || []).includes(f.genre)) return false;
     if (f.service !== 'all' && !allServiceNames(m.providers).includes(f.service)) return false;
@@ -82,7 +95,7 @@ export function renderLibrary(el, { keepScroll = false } = {}) {
       <label class="sr-only" for="q">Search movies</label>
       <input class="search" id="q" type="search" placeholder="🔎 Search titles..." value="${esc(f.q)}" autocomplete="off">
       <div class="filters">
-        <label>Status<select data-f="status">${options([['all', 'All'], ['unwatched', 'Unwatched'], ['watched', 'Watched'], ['wishlist', 'Wishlist'], ['excluded', 'Excluded'], ['streaming', 'Included streaming']], f.status)}</select></label>
+        <label>Status<select data-f="status">${options([['all', 'All'], ['rotation', `Nightly top ${app.state.poolSize || 100}`], ['unwatched', 'Unwatched'], ['watched', 'Watched'], ['wishlist', 'Wishlist'], ['excluded', 'Excluded'], ['streaming', 'Included streaming']], f.status)}</select></label>
         <label>Category<select data-f="category">${options([['all', 'All'], ...CATEGORIES.map((c) => [c.id, `${c.emoji} ${c.label}`])], f.category)}</select></label>
         <label>Genre<select data-f="genre">${options([['all', 'All'], ...fc.genres.map((g) => [g, g])], f.genre)}</select></label>
         <label>Service<select data-f="service">${options([['all', 'Any'], ...fc.services.map((s) => [s, s])], f.service)}</select></label>

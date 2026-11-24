@@ -28,7 +28,8 @@ function weightedPick(items, weights, rng) {
  */
 export function pickForCategory(category, ctx) {
   const base = ctx.catalog.filter((m) => m.category === category
-    && !ctx.watched.has(m.id) && !ctx.excluded.has(m.id) && !ctx.taken.has(m.id));
+    && !ctx.watched.has(m.id) && !ctx.excluded.has(m.id) && !ctx.taken.has(m.id)
+    && (!ctx.pool || ctx.pool.has(m.id)));
   if (!base.length) return null;
   const fresh = base.filter((m) => !ctx.recent.has(m.id));
   const pool = fresh.length ? fresh : base;
