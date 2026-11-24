@@ -28,7 +28,8 @@ export function diagnose(err) {
     return 'Setup: the Supabase tables are missing. In Supabase, open SQL Editor, paste supabase/schema.sql from the repo and click Run.';
   }
   if (/Supabase .*\((401|403)\)/.test(m)) {
-    return 'Setup: Supabase rejected the key. SUPABASE_SERVICE_ROLE_KEY must be the secret or service_role key, not the publishable or anon key.';
+    const detail = (m.match(/"message":"([^"]{0,140})/) || [])[1] || m.slice(-140);
+    return `Setup: Supabase rejected the key. SUPABASE_SERVICE_ROLE_KEY must be the secret or service_role key from this same project, not the publishable or anon key. Supabase said: ${detail}`;
   }
   if (/ENOTFOUND|fetch failed|Invalid URL|getaddrinfo/i.test(m)) {
     return 'Setup: the server cannot reach SUPABASE_URL. It should look like https://abcdefgh.supabase.co with nothing after .co.';
