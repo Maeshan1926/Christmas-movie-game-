@@ -63,6 +63,20 @@ export class RuleError extends Error {
 }
 
 /** Returns the patch for a reroll, or throws RuleError. */
+/** Swap one of tonight's movies for a fresh pick without using the reroll (family has seen it). */
+export function replacePatch(night, tmdbId, ctx) {
+  const category = CATEGORY_IDS.find((c) => (night.picks[c] || []).includes(tmdbId));
+  if (!category) throw new RuleError('That movie is not in tonight\'s lineup.', 400);
+  const taken = allPicked(night);
+  const id = pickForCategory(category, { ...ctx, taken });
+  const list = night.picks[category].map((x) => (x === tmdbId ? id : x)).filter((x) => x != null);
+  return {
+    picks: { ...night.picks, [category]: list },
+    chosen: night.chosen === tmdbId ? null : night.chosen,
+    replacedWith: id,
+  };
+}
+
 export function rerollPatch(night, category, ctx) {
   if (!CATEGORY_IDS.includes(category)) throw new RuleError('Unknown category', 400);
   const used = night.rerolls?.[category] || 0;

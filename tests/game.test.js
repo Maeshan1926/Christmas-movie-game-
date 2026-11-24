@@ -232,3 +232,22 @@ test('nightly picks only come from the top-ranked pool, which refills as movies 
   const worst = catalog.find((m) => m.category === 'drama' && m.votes === 50).id;
   assert.ok(nightlyPool(catalog, { watched: new Set(), excluded: new Set(), wishlist: new Set([worst]), size: 30 }).has(worst));
 });
+
+test('"seen it" skips a movie for good and swaps in a new pick without using the reroll', async () => {
+  const w = newWorld();
+  const d = w.dev(4);
+  const n1 = (await d.state()).body.night;
+  const seenId = n1.picks.drama[0];
+  const r = await d.call('POST', '/api/tonight/seen', { tmdbId: seenId });
+  assert.equal(r.status, 200);
+  const n2 = r.body.night;
+  assert.equal(n2.picks.drama.length, 1);
+  assert.notEqual(n2.picks.drama[0], seenId);
+  assert.equal(n2.rerolls.drama, 0, 'reroll still available');
+  assert.equal(new Set(picksOf(n2)).size, 3);
+  assert.ok(r.body.flags.find((f) => f.tmdb_id === seenId).excluded);
+  for (let i = 0; i < 10; i += 1) {
+    w.clock.advance(86_400_000);
+    assert.ok(!picksOf((await d.state()).body.night).includes(seenId));
+  }
+});

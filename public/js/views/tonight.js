@@ -54,7 +54,8 @@ export function renderTonight(el) {
           ? `<a class="btn btn-red" data-start="${id}" href="${esc(app.movies.get(id)?.providers?.link || `https://www.themoviedb.org/movie/${id}/watch?locale=US`)}" target="_blank" rel="noopener">▶ Start Watching</a>
              <button class="btn btn-green" data-watched="${id}">✔ Mark as Watched</button>
              <button class="btn btn-ghost btn-small" style="color:var(--ink);border-color:#d8c9b0" data-unchoose>Change pick</button>`
-          : `<button class="btn btn-gold" data-choose="${id}">🎄 We pick this one</button>`;
+          : `<button class="btn btn-gold" data-choose="${id}">🎄 We pick this one</button>
+             <button class="btn btn-ghost btn-small" style="color:var(--ink);border-color:#d8c9b0" data-seen="${id}" title="Already seen it: skip it for good and get a new pick">👀 Seen it, swap it</button>`;
       const ribbon = chosen ? '<span class="ribbon">Tonight\'s Pick</span>' : isWatched ? '<span class="ribbon green">Watched</span>' : '';
       const anim = animateIds.has(id) ? 'flip-in' : '';
       return `${ids.length > 1 ? `<div class="option-label">${i === 0 ? 'Original pick' : 'Reroll'}</div>` : ''}
@@ -85,6 +86,15 @@ export function renderTonight(el) {
         await mutate('/api/tonight/reroll', { category: c });
         app.state.night.picks[c].filter((x) => !before.has(x)).forEach((x) => animateIds.add(x));
         playPop();
+        renderTonight(el);
+      } else if (t.dataset.seen) {
+        const id = Number(t.dataset.seen);
+        const before = new Set(Object.values(night.picks).flat());
+        t.disabled = true;
+        await mutate('/api/tonight/seen', { tmdbId: id });
+        Object.values(app.state.night.picks).flat().filter((x) => !before.has(x)).forEach((x) => animateIds.add(x));
+        playPop();
+        toast(`Skipped "${app.movies.get(id)?.title}". Here's a fresh one. Undo in the Library.`);
         renderTonight(el);
       } else if (t.dataset.choose) {
         await mutate('/api/tonight/choose', { tmdbId: Number(t.dataset.choose) });

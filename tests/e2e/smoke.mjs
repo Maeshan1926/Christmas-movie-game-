@@ -64,6 +64,12 @@ try {
   if (JSON.stringify(dTitles.sort()) !== JSON.stringify([...after].sort())) fail('devices disagree on lineup');
   if (!(await d.locator('[data-reroll="comedy"]').isDisabled())) fail('reroll not shared across devices');
 
+  // "Seen it" swaps a card without using the drama reroll
+  const seenId = await p.locator('[data-seen]').last().getAttribute('data-seen');
+  await p.click(`[data-seen="${seenId}"]`);
+  await p.waitForFunction((id) => !document.querySelector(`[data-seen="${id}"]`), seenId);
+  if ((await p.locator('.mcard').count()) !== 4) fail('seen-it should keep 4 cards');
+
   // Choose on phone, mark watched, rate
   const firstId = await p.locator('[data-choose]').first().getAttribute('data-choose');
   await p.click(`[data-choose="${firstId}"]`);

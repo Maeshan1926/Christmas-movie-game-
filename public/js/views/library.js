@@ -3,13 +3,14 @@ import { app, allMovies, api, mutate, watchedSet, flagsMap } from '../store.js';
 import { CATEGORIES } from '../shared/config.js';
 import { allServiceNames, availability } from '../shared/streaming.js';
 import { ratingsByMovie } from '../shared/stats.js';
-import { nightlyPool } from '../shared/pool.js';
+import { nightlyPool, rankScore } from '../shared/pool.js';
 import { openMovie, openModal, closeModal } from '../components.js';
 
 const PAGE = 60;
 const f = { q: '', status: 'all', category: 'all', genre: 'all', service: 'all', decade: 'all', runtime: 'all', cert: 'all', fam: 'all', sort: 'title' };
 let shown = PAGE;
 let observer = null;
+let sortMode = false;
 
 function options(list, cur) {
   return list.map(([v, label]) => `<option value="${esc(v)}" ${String(cur) === String(v) ? 'selected' : ''}>${esc(label)}</option>`).join('');
@@ -73,6 +74,8 @@ function apply(movies) {
     return true;
   });
   const famAvg = (m) => fam.get(m.id)?.avg ?? -1;
+  const rated = movies.filter((m) => m.votes > 0);
+  const mean = rated.length ? rated.reduce((s, m) => s + (m.score || 0), 0) / rated.length : 6;
   const sorters = {
     title: (a, b) => a.title.localeCompare(b.title),
     newest: (a, b) => (b.year || 0) - (a.year || 0),
@@ -80,6 +83,7 @@ function apply(movies) {
     score: (a, b) => (b.score || 0) - (a.score || 0),
     family: (a, b) => famAvg(b) - famAvg(a) || a.title.localeCompare(b.title),
     runtime: (a, b) => (a.runtime || 999) - (b.runtime || 999),
+    rank: (a, b) => rankScore(b, mean) - rankScore(a, mean),
   };
   out = out.sort(sorters[f.sort] || sorters.title);
   return out;
@@ -90,12 +94,14 @@ export function renderLibrary(el, { keepScroll = false } = {}) {
   const fc = facets(movies);
   const active = document.activeElement?.id;
   el.innerHTML = `<div class="stage-head"><div><div class="marquee">${movies.length} Christmas movies</div><h1 class="section-title">Christmas Movie Library</h1></div>
-      <button class="btn btn-ghost btn-small" id="addMovie">➕ Add a movie we watched</button></div>
+      <div class="card-actions"><button class="btn ${sortMode ? 'btn-gold' : 'btn-ghost'} btn-small" id="sortMode" aria-pressed="${sortMode}">${sortMode ? '✓ Done marking' : '👀 Mark ones we\'ve seen'}</button>
+      <button class="btn btn-ghost btn-small" id="addMovie">➕ Add a movie we watched</button></div></div>
+    ${sortMode ? `<div class="banner">Tap every movie your family has already seen. Tapped movies leave the nightly picks. Tap again to undo. Showing the nightly top ${app.state.poolSize || 100} first.</div>` : ''}
     <div class="lib-tools">
       <label class="sr-only" for="q">Search movies</label>
       <input class="search" id="q" type="search" placeholder="🔎 Search titles..." value="${esc(f.q)}" autocomplete="off">
       <div class="filters">
-        <label>Status<select data-f="status">${options([['all', 'All'], ['rotation', `Nightly top ${app.state.poolSize || 100}`], ['unwatched', 'Unwatched'], ['watched', 'Watched'], ['wishlist', 'Wishlist'], ['excluded', 'Excluded'], ['streaming', 'Included streaming']], f.status)}</select></label>
+        <label>Status<select data-f="status">${options([['all', 'All'], ['rotation', `Nightly top ${app.state.poolSize || 100}`], ['unwatched', 'Unwatched'], ['watched', 'Watched'], ['wishlist', 'Wishlist'], ['excluded', 'Seen before / skipped'], ['streaming', 'Included streaming']], f.status)}</select></label>
         <label>Category<select data-f="category">${options([['all', 'All'], ...CATEGORIES.map((c) => [c.id, `${c.emoji} ${c.label}`])], f.category)}</select></label>
         <label>Genre<select data-f="genre">${options([['all', 'All'], ...fc.genres.map((g) => [g, g])], f.genre)}</select></label>
         <label>Service<select data-f="service">${options([['all', 'Any'], ...fc.services.map((s) => [s, s])], f.service)}</select></label>
@@ -106,7 +112,7 @@ export function renderLibrary(el, { keepScroll = false } = {}) {
       </div>
       <div class="lib-count"><span id="count"></span>
         <label style="display:flex;gap:6px;align-items:center;font-size:13px">Sort
-          <select data-f="sort" style="padding:6px;border-radius:8px;background:#12261d;color:var(--cream);border:1px solid rgba(255,255,255,.2)">${options([['title', 'A to Z'], ['newest', 'Newest'], ['oldest', 'Oldest'], ['score', 'Audience score'], ['family', 'Family rating'], ['runtime', 'Shortest']], f.sort)}</select></label>
+          <select data-f="sort" style="padding:6px;border-radius:8px;background:#12261d;color:var(--cream);border:1px solid rgba(255,255,255,.2)">${options([['title', 'A to Z'], ['newest', 'Newest'], ['oldest', 'Oldest'], ['score', 'Audience score'], ['family', 'Family rating'], ['runtime', 'Shortest'], ['rank', 'Top ranked']], f.sort)}</select></label>
         <button class="btn btn-ghost btn-small" id="clearF">Clear filters</button></div>
     </div>
     <div class="grid" id="grid"></div><div class="more-sentinel" id="more"></div>`;
@@ -117,7 +123,20 @@ export function renderLibrary(el, { keepScroll = false } = {}) {
   if (active === 'q') { q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
   el.querySelectorAll('[data-f]').forEach((s) => s.addEventListener('change', () => { f[s.dataset.f] = s.value; shown = PAGE; drawGrid(el); }));
   $('#clearF', el).addEventListener('click', () => { Object.assign(f, { q: '', status: 'all', category: 'all', genre: 'all', service: 'all', decade: 'all', runtime: 'all', cert: 'all', fam: 'all' }); renderLibrary(el); });
-  $('#grid', el).addEventListener('click', (e) => { const t = e.target.closest('[data-open]'); if (t) openMovie(Number(t.dataset.open)); });
+  $('#grid', el).addEventListener('click', async (e) => {
+    const t = e.target.closest('[data-open]');
+    if (!t) return;
+    const id = Number(t.dataset.open);
+    if (!sortMode) { openMovie(id); return; }
+    const on = !(flagsMap().get(id)?.excluded);
+    t.classList.toggle('dim', on);
+    try { await mutate('/api/flag', { tmdbId: id, excluded: on }); } catch (err) { t.classList.toggle('dim', !on); toast(err.message, { error: true }); }
+  });
+  $('#sortMode', el).addEventListener('click', () => {
+    sortMode = !sortMode;
+    if (sortMode) { f.status = 'all'; f.sort = 'rank'; }
+    renderLibrary(el);
+  });
   $('#addMovie', el).addEventListener('click', openAddMovie);
   observer?.disconnect();
   observer = new IntersectionObserver((entries) => {
@@ -139,7 +158,7 @@ function drawGrid(el, append = false) {
     const avg = fam.get(m.id)?.avg;
     return `<button class="tile ${fl.excluded ? 'dim' : ''}" data-open="${m.id}" aria-label="${esc(m.title)} ${m.year || ''}${w ? ', watched' : ''}">
       ${posterHtml(m, { size: 'w185' })}
-      ${w ? `<span class="badge">✔ ${avg != null ? avg : 'Watched'}</span>` : fl.excluded ? '<span class="badge ex">Excluded</span>' : ''}
+      ${w ? `<span class="badge">✔ ${avg != null ? avg : 'Watched'}</span>` : fl.excluded ? '<span class="badge ex">Seen / skipped</span>' : ''}
       ${fl.wishlist ? '<span class="badge wish">⭐</span>' : ''}
       <div class="t">${esc(m.title)}</div><div class="y">${m.year || ''}${m.runtime ? ` · ${m.runtime}m` : ''}</div></button>`;
   }).join('');

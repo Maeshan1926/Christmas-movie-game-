@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import { CATEGORY_IDS, MEMBER_IDS, PROVIDER_TTL_HOURS } from '../../public/js/shared/config.js';
 import { pacificDate, seasonOf, msUntilPacificMidnight } from '../../public/js/shared/dates.js';
 import { activeWatchedIds } from '../../public/js/shared/stats.js';
-import { generateNight, rerollPatch, allPicked, RuleError, RECENT_NIGHTS_TO_AVOID } from './selection.js';
+import { generateNight, rerollPatch, replacePatch, allPicked, RuleError, RECENT_NIGHTS_TO_AVOID } from './selection.js';
 import { fetchProviders } from './tmdb.js';
 import { nightlyPool, DEFAULT_POOL_SIZE } from '../../public/js/shared/pool.js';
 import { buildMovieRecord, DETAIL_APPEND } from './movie-record.js';
@@ -160,6 +160,18 @@ export function createApi({ store, getCatalog, familyCode, tmdb = null, now = ()
     'POST /api/tonight/reroll': async (_req, body) => {
       const today = pacificDate(now());
       await mutateNight(today, async (night) => rerollPatch(night, body.category, await selectionContext(today)));
+      return json(200, await state());
+    },
+
+    'POST /api/tonight/seen': async (_req, body) => {
+      const id = Number(body.tmdbId);
+      const today = pacificDate(now());
+      await store.setFlag(id, { excluded: true });
+      await mutateNight(today, async (night) => {
+        if (!allPicked(night).has(id)) return {};
+        const { replacedWith, ...patch } = replacePatch(night, id, await selectionContext(today));
+        return patch;
+      });
       return json(200, await state());
     },
 
