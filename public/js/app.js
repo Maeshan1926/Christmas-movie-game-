@@ -1,6 +1,7 @@
 import { $, $$, esc, toast, storage } from './util.js';
 import { app, api, loadCatalog, refresh, subscribe, startPolling, ApiError } from './store.js';
 import { startSnow, hangLights } from './fx/snow.js';
+import { FAMILY, setFamily } from './shared/config.js';
 import { setSound, soundEnabled, playJingle } from './fx/sound.js';
 import { modalOpen } from './components.js';
 import { renderHome } from './views/home.js';
@@ -27,11 +28,17 @@ function route() {
 }
 
 let pending = false;
+function applyBranding() {
+  document.title = `${FAMILY.name} Family Christmas Movies`;
+  $$('.brand-small').forEach((el) => { el.textContent = `The ${FAMILY.name} Family`; });
+}
+
 function render({ fromPoll = false } = {}) {
   const r = route();
   const [fn, tab] = ROUTES[r];
   $$('.tabs a').forEach((a) => (a.dataset.tab === tab ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
   document.body.classList.toggle('home', r === 'tonight');
+  applyBranding();
   if (!app.state) return;
   // Never yank the page out from under someone mid-interaction during background sync.
   if (fromPoll && (modalOpen() || document.querySelector('.celebrate') || document.activeElement?.id === 'q')) { pending = true; return; }
@@ -44,7 +51,7 @@ function renderGate(message = '') {
   view.innerHTML = `<section class="gate"><form id="gate">
     <div style="font-size:54px" aria-hidden="true">🎄</div>
     <h1>Welcome Home</h1>
-    <p class="subtle">Enter the Trunk family code to join tonight's movie on this device.</p>
+    <p class="subtle">Enter the ${esc(FAMILY.name)} family code to join tonight's movie on this device.</p>
     <label class="sr-only" for="code">Family code</label>
     <input id="code" type="password" autocomplete="current-password" placeholder="Family code" required>
     <div class="err" role="alert">${esc(message)}</div>
@@ -101,5 +108,9 @@ startSnow($('#snow'));
 hangLights($('.lights'));
 window.addEventListener('resize', () => hangLights($('.lights')));
 
-render();
-if (app.code) boot(); else renderGate();
+// Load public branding (family name, banner) before anything renders.
+fetch('/api/family').then((r) => (r.ok ? r.json() : null)).catch(() => null).then((fam) => {
+  if (fam) setFamily(fam);
+  render();
+  if (app.code) boot(); else renderGate();
+});

@@ -1,6 +1,8 @@
 // Shared configuration used by the browser app, the server functions and the catalog builder.
 
-export const APP_NAME = 'The Trunk Family Christmas Movie Challenge';
+// Each deployed site sets its own family through FAMILY_NAME and FAMILY_MEMBERS (see README).
+export const DEFAULT_FAMILY_NAME = 'Trunk';
+export const DEFAULT_MEMBER_NAMES = ['Dad', 'Mommy', 'Lincoln', 'Sienna'];
 
 export const CATEGORIES = [
   { id: 'comedy', label: 'Comedy', emoji: '🎅', blurb: 'Comedies, rom-coms and family laughs' },
@@ -12,13 +14,33 @@ export const categoryById = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]))
 
 export const REROLLS_PER_CATEGORY = 1;
 
-export const MEMBERS = [
-  { id: 'dad', label: 'Dad', color: '#2f7d4f' },
-  { id: 'mommy', label: 'Mommy', color: '#c0392b' },
-  { id: 'lincoln', label: 'Lincoln', color: '#2c6fbb' },
-  { id: 'sienna', label: 'Sienna', color: '#b8860b' },
-];
+const MEMBER_COLORS = ['#2f7d4f', '#c0392b', '#2c6fbb', '#b8860b', '#8e44ad', '#d35400', '#16a085', '#7f8c8d'];
+
+/** Stable id for a member name: "Dad" -> "dad", "Mary Ann" -> "mary-ann". Ratings are stored by this id. */
+export function memberId(name) {
+  return String(name).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+export function buildMembers(names) {
+  const clean = (names || []).map((n) => String(n).trim()).filter(Boolean);
+  const list = clean.length ? clean : DEFAULT_MEMBER_NAMES;
+  return list.slice(0, 8).map((label, i) => ({ id: memberId(label), label, color: MEMBER_COLORS[i % MEMBER_COLORS.length] }));
+}
+
+// Mutated in place by setFamily so every importer sees the current family.
+export const MEMBERS = buildMembers(DEFAULT_MEMBER_NAMES);
 export const MEMBER_IDS = MEMBERS.map((m) => m.id);
+export const FAMILY = { name: DEFAULT_FAMILY_NAME, hero: null };
+
+export function setFamily({ name, members, hero } = {}) {
+  if (name) FAMILY.name = name;
+  FAMILY.hero = hero || null;
+  if (members?.length) {
+    const next = members[0]?.id ? members : buildMembers(members);
+    MEMBERS.splice(0, MEMBERS.length, ...next);
+    MEMBER_IDS.splice(0, MEMBER_IDS.length, ...next.map((m) => m.id));
+  }
+}
 
 // Services the family subscribes to. TMDB/JustWatch provider ids (US).
 // "Included" means the movie streams on any flatrate, free or ad-supported service;

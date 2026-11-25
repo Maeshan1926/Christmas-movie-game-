@@ -57,6 +57,11 @@ export function apiFromEnv(env = process.env, extra = {}) {
     familyCode: env.FAMILY_CODE,
     tmdb: tmdbFromEnv(env),
     omdbKey: String(env.OMDB_API_KEY || '').trim() || null,
+    family: {
+      name: String(env.FAMILY_NAME || '').trim() || undefined,
+      members: String(env.FAMILY_MEMBERS || '').split(',').map((x) => x.trim()).filter(Boolean),
+      hero: env.HERO_IMAGE != null && String(env.HERO_IMAGE).trim() !== '' ? String(env.HERO_IMAGE).trim() : undefined,
+    },
     poolSize: env.NIGHTLY_POOL_SIZE != null && env.NIGHTLY_POOL_SIZE !== '' ? Number(env.NIGHTLY_POOL_SIZE) : undefined,
     ...extra,
   });

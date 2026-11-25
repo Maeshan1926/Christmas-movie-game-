@@ -289,3 +289,23 @@ test('the Christmas 100 is frozen once, keeps prior watches, survives catalog ch
     assert.ok(!Object.values(s.night.picks).flat().includes(s1.hundred.ids[0]), 'watched never suggested');
   }
 });
+
+test('family name and members come from configuration', async () => {
+  const { createApi } = await import('../netlify/lib/api.js');
+  const { createMemoryStore } = await import('../netlify/lib/store-memory.js');
+  const { fixtureCatalog, makeClock } = await import('./helpers.js');
+  const api = createApi({
+    store: createMemoryStore(), getCatalog: async () => fixtureCatalog(), familyCode: 'x', now: makeClock('2026-12-01T19:00:00-08:00').now,
+    family: { name: 'Wolanski', members: ['Jamie', 'Greg', 'Iris', 'Eloise'] },
+  });
+  const call = async (method, path, body) => api(new Request(`http://l${path}`, { method, headers: { 'x-family-code': 'x' }, body: body && JSON.stringify(body) }));
+  const pub = await (await api(new Request('http://l/api/family'))).json();
+  assert.deepEqual(pub, { name: 'Wolanski', hero: null });
+  const st = await (await call('GET', '/api/state')).json();
+  assert.deepEqual(st.family.members.map((m) => m.id), ['jamie', 'greg', 'iris', 'eloise']);
+  assert.equal((await call('POST', '/api/rate', { tmdbId: 1, member: 'eloise', score: 9 })).status, 200);
+  assert.equal((await call('POST', '/api/rate', { tmdbId: 1, member: 'dad', score: 9 })).status, 400);
+  // Default site stays the Trunk family with the built-in banner.
+  const trunk = createApi({ store: createMemoryStore(), getCatalog: async () => fixtureCatalog(), familyCode: 'x' });
+  assert.deepEqual(await (await trunk(new Request('http://l/api/family'))).json(), { name: 'Trunk', hero: 'builtin' });
+});

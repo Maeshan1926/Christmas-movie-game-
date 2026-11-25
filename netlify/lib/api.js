@@ -1,6 +1,6 @@
 // The family API. A Web-standard (Request) => Response handler shared by Netlify and the dev server.
 import crypto from 'node:crypto';
-import { CATEGORY_IDS, MEMBER_IDS, PROVIDER_TTL_HOURS } from '../../public/js/shared/config.js';
+import { CATEGORY_IDS, PROVIDER_TTL_HOURS, buildMembers, DEFAULT_FAMILY_NAME, DEFAULT_MEMBER_NAMES } from '../../public/js/shared/config.js';
 import { pacificDate, seasonOf, msUntilPacificMidnight } from '../../public/js/shared/dates.js';
 import { activeWatchedIds } from '../../public/js/shared/stats.js';
 import { generateNight, rerollPatch, replacePatch, allPicked, RuleError, RECENT_NIGHTS_TO_AVOID } from './selection.js';
@@ -50,7 +50,11 @@ export function diagnose(err) {
  * @param {() => Date} [deps.now]
  * @param {() => number} [deps.rng]
  */
-export function createApi({ store, getCatalog, familyCode, tmdb = null, now = () => new Date(), rng = Math.random, poolSize = DEFAULT_POOL_SIZE, omdbKey = null, fetchImpl = fetch }) {
+export function createApi({ store, getCatalog, familyCode, tmdb = null, now = () => new Date(), rng = Math.random, poolSize = DEFAULT_POOL_SIZE, omdbKey = null, fetchImpl = fetch, family = {} }) {
+  const familyName = family.name || DEFAULT_FAMILY_NAME;
+  const members = buildMembers(family.members?.length ? family.members : DEFAULT_MEMBER_NAMES);
+  const memberIds = members.map((m) => m.id);
+  const hero = family.hero === undefined ? (familyName === DEFAULT_FAMILY_NAME ? 'builtin' : null) : family.hero;
   let hundredMemo = null;
 
   /** The frozen Christmas 100. Created once from the catalog, then never changes. */
@@ -179,6 +183,7 @@ export function createApi({ store, getCatalog, familyCode, tmdb = null, now = ()
       providers,
       tmdbLive: !!tmdb,
       poolSize,
+      family: { name: familyName, members, hero },
       hundred: h ? { ids: h.ids, frozenAt: h.frozenAt } : null,
       hundredExtra: h ? (h.movies || []).filter((m) => m && !baseIds.has(m.id)) : [],
       storage: store.kind,
@@ -260,7 +265,7 @@ export function createApi({ store, getCatalog, familyCode, tmdb = null, now = ()
 
     'POST /api/rate': async (_req, body) => {
       const id = Number(body.tmdbId);
-      if (!MEMBER_IDS.includes(body.member)) throw new RuleError('Unknown family member.', 400);
+      if (!memberIds.includes(body.member)) throw new RuleError('Unknown family member.', 400);
       const score = body.score == null || body.score === '' ? null : Number(body.score);
       if (score != null && (!Number.isInteger(score) || score < 1 || score > 10)) throw new RuleError('Scores run 1 to 10.', 400);
       if (!(await catalogIds()).has(id)) throw new RuleError('Unknown movie.', 400);
@@ -312,6 +317,8 @@ export function createApi({ store, getCatalog, familyCode, tmdb = null, now = ()
     const url = new URL(req.url);
     const key = `${req.method} ${url.pathname.replace(/\/$/, '')}`;
     if (key === 'GET /api/health') return json(200, { ok: true, storage: store.kind, tmdb: !!tmdb });
+    // Public branding for the sign-in screen. Member names stay behind the family code.
+    if (key === 'GET /api/family') return json(200, { name: familyName, hero });
     const route = routes[key];
     if (!route) return json(404, { error: 'Not found' });
     if (key !== 'POST /api/login' && !codeMatches(req.headers.get('x-family-code'), familyCode)) {

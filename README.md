@@ -32,6 +32,17 @@ No paid services are used.
 
 To refresh the catalog (new releases, streaming changes), trigger a redeploy. Streaming info for tonight's picks and any opened movie also refreshes live every 72 hours.
 
+## Running a site for another family
+
+One codebase serves any number of families. Each family gets its own Netlify site and its own Supabase project, so data never mixes. Every push to this branch updates all sites.
+
+| Netlify variable | Example | Notes |
+|---|---|---|
+| `FAMILY_NAME` | `Wolanski` | Shown as "The Wolanski Family". Defaults to Trunk. |
+| `FAMILY_MEMBERS` | `Jamie, Greg, Iris, Eloise` | Comma separated, up to 8. Ratings are stored per name, so keep names stable. |
+| `HERO_IMAGE` | `/img/wolanski.webp` or a full https URL | Optional. Without it, an illustrated banner with the family name shows. |
+| `FAMILY_CODE`, `TMDB_READ_TOKEN`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | | Same as above. The TMDB token can be shared across sites. |
+
 ## Optional: Rotten Tomatoes scores
 
 Add `OMDB_API_KEY` in Netlify (free key at omdbapi.com, 1,000 requests/day) and redeploy. Cards then show Rotten Tomatoes and IMDb scores when OMDb has them. Without it, cards show the TMDB audience score only. No score is ever estimated.

@@ -1,7 +1,7 @@
 import { esc, posterUrl, storage, sleep, reducedMotion } from '../util.js';
 import { app, hundredWatchedIds } from '../store.js';
 import { daysUntilChristmas, parseDay, formatDay } from '../shared/dates.js';
-import { CATEGORIES } from '../shared/config.js';
+import { CATEGORIES, FAMILY } from '../shared/config.js';
 import { openMovie, posterImg, watchLink, markWatched, askConfirm } from '../components.js';
 import { mutate } from '../store.js';
 import { playDrumroll } from '../fx/sound.js';
@@ -36,6 +36,20 @@ const HERO_SVG = `<svg viewBox="0 0 400 225" preserveAspectRatio="xMidYMid slice
     <polygon points="18,-32 20,-27 25,-27 21,-24 22,-19 18,-22 14,-19 15,-24 11,-27 16,-27" fill="#ffd77a"/></g>
 </svg>`;
 
+function heroArt() {
+  const alt = `The ${FAMILY.name} Family Christmas Movies banner`;
+  const onload = `onload="this.closest('.hero').classList.add('has-art')"`;
+  const onerror = `onerror="this.closest('picture').remove()"`;
+  if (FAMILY.hero === 'builtin') {
+    return `<picture><source type="image/webp" srcset="/img/hero-900.webp 900w, /img/hero.webp 1672w" sizes="(min-width: 1100px) 1068px, 100vw">
+        <img src="/img/hero.jpg" alt="${esc(alt)}" width="1672" height="941" fetchpriority="high" ${onload} ${onerror}></picture>`;
+  }
+  if (FAMILY.hero) {
+    return `<picture><img src="${esc(FAMILY.hero)}" alt="${esc(alt)}" fetchpriority="high" ${onload} ${onerror}></picture>`;
+  }
+  return '';
+}
+
 export function renderHome(el) {
   const s = app.state;
   const total = s.hundred?.ids?.length || 100;
@@ -52,10 +66,8 @@ export function renderHome(el) {
   el.innerHTML = `<div class="home-wrap">
     <div class="hero" id="hero">
       ${HERO_SVG}
-      <picture><source type="image/webp" srcset="/img/hero-900.webp 900w, /img/hero.webp 1672w" sizes="(min-width: 1100px) 1068px, 100vw">
-        <img src="/img/hero.jpg" alt="The Trunk Family Christmas Movies: a cozy living room with a lit tree, fireplace and stockings" width="1672" height="941" fetchpriority="high"
-          onload="this.closest('.hero').classList.add('has-art')" onerror="this.closest('picture').remove()"></picture>
-      <div class="hero-brand"><span class="brand-small">The Trunk Family</span><span class="brand-big">Christmas Movies</span></div>
+      ${heroArt()}
+      <div class="hero-brand"><span class="brand-small">The ${esc(FAMILY.name)} Family</span><span class="brand-big">Christmas Movies</span></div>
     </div>
 
     ${chosen && !chosenWatched ? `

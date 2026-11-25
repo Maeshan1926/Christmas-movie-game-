@@ -1,5 +1,6 @@
 // Client state: the static catalog plus the shared family state from the server.
 import { storage } from './util.js';
+import { setFamily } from './shared/config.js';
 
 const listeners = new Set();
 export const app = {
@@ -70,6 +71,7 @@ export function setState(s) {
   const changed = json !== app.lastJson;
   app.state = s;
   app.lastJson = json;
+  if (s.family) setFamily(s.family);
   indexMovies();
   // Fresh provider data for tonight's picks overrides the build-time snapshot.
   for (const [id, p] of Object.entries(s.providers || {})) {
