@@ -25,6 +25,8 @@ export function categoryFor(m, preset = 'default') {
   const g = m.genres || [];
   const horror = g.includes('Horror') || (m.tags || []).includes('horror');
   if (!horror && (g.includes('Animation') || g.includes('Family') || (m.tags || []).includes('animated'))) return 'kids';
+  // No slot for action, thrillers or horror in the kids set: those movies are left out.
+  if (horror || ['Action', 'Thriller', 'Crime', 'War', 'Science Fiction'].some((x) => g.includes(x)) || (m.tags || []).includes('action')) return null;
   if (g.includes('Comedy') && (m.year || 0) >= 1980) return 'comedy';
   return 'classic';
 }

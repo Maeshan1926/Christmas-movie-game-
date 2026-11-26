@@ -46,7 +46,8 @@ function indexMovies() {
   // Movies above the family's age-rating limit never show, except ones they already watched or added.
   const watchedIds = new Set((app.state?.watches || []).map((w) => w.tmdb_id));
   const remap = (m) => (FAMILY.categories === 'default' ? m : { ...m, category: categoryFor(m, FAMILY.categories) });
-  app.movies = new Map(app.catalog.filter((m) => allowedByRating(m, FAMILY.maxRating) || watchedIds.has(m.id)).map((m) => [m.id, remap(m)]));
+  app.movies = new Map(app.catalog.filter((m) => allowedByRating(m, FAMILY.maxRating) || watchedIds.has(m.id)).map(remap)
+    .filter((m) => m.category || watchedIds.has(m.id)).map((m) => [m.id, m]));
   for (const m of app.state?.customMovies || []) if (!app.movies.has(m.id)) app.movies.set(m.id, remap(m));
   for (const m of app.state?.hundredExtra || []) if (m && !app.movies.has(m.id)) app.movies.set(m.id, remap(m));
 }

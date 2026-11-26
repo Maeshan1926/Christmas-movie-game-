@@ -86,7 +86,8 @@ export function createApi({ store, getCatalog, familyCode, tmdb = null, now = ()
 
   async function baseCatalog() {
     const base = (await getCatalog()).filter((m) => allowedByRating(m, maxRating))
-      .map((m) => (preset === 'default' ? m : { ...m, category: categoryFor(m, preset) }));
+      .map((m) => (preset === 'default' ? m : { ...m, category: categoryFor(m, preset) }))
+      .filter((m) => m.category);
     const custom = store.listCustomMovies ? await store.listCustomMovies() : [];
     if (!custom.length) return base;
     const ids = new Set(base.map((m) => m.id));

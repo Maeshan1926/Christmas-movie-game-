@@ -360,6 +360,8 @@ test('kids category set: Kids, Comedy, Traditional, each pick fits its category 
   assert.equal(categoryFor({ genres: ['Comedy'], year: 1989 }, 'kids'), 'comedy');
   assert.equal(categoryFor({ genres: ['Drama'], year: 1946 }, 'kids'), 'classic');
   assert.equal(categoryFor({ genres: ['Comedy', 'Romance'], year: 1945 }, 'kids'), 'classic');
+  assert.equal(categoryFor({ genres: ['Action', 'Fantasy'], year: 1992 }, 'kids'), null, 'Batman Returns-style movies are left out');
+  assert.equal(categoryFor({ genres: ['Animation', 'Action'], year: 2023 }, 'kids'), 'kids');
   const pool = [['Animation', 'Family'], ['Comedy'], ['Drama', 'Romance'], ['Horror']];
   const catalog = Array.from({ length: 120 }, (_, i) => ({
     id: i + 1, title: `m${i + 1}`, category: 'drama', genres: pool[i % 4], year: 1950 + (i % 70), cert: i % 4 === 3 ? 'R' : 'PG', score: 6 + (i % 10) / 5, votes: 200 + i * 40, providers: null,

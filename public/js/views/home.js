@@ -40,9 +40,11 @@ function heroArt() {
   const alt = `The ${FAMILY.name} Family Christmas Movies banner`;
   const onload = `onload="this.closest('.hero').classList.add('has-art')"`;
   const onerror = `onerror="this.closest('picture').remove()"`;
-  if (FAMILY.hero === 'builtin') {
-    return `<picture><source type="image/webp" srcset="/img/hero-900.webp 900w, /img/hero.webp 1672w" sizes="(min-width: 1100px) 1068px, 100vw">
-        <img src="/img/hero.jpg" alt="${esc(alt)}" width="1672" height="941" fetchpriority="high" ${onload} ${onerror}></picture>`;
+  // 'builtin' is the Trunk art; a bare name like 'wolanski' uses the bundled /img/<name> set.
+  const set = FAMILY.hero === 'builtin' ? 'hero' : /^[a-z0-9-]+$/.test(FAMILY.hero || '') ? FAMILY.hero : null;
+  if (set) {
+    return `<picture><source type="image/webp" srcset="/img/${set}-900.webp 900w, /img/${set}.webp 1672w" sizes="(min-width: 1100px) 1068px, 100vw">
+        <img src="/img/${set}.jpg" alt="${esc(alt)}" width="1672" height="941" fetchpriority="high" ${onload} ${onerror}></picture>`;
   }
   if (FAMILY.hero) {
     return `<picture><img src="${esc(FAMILY.hero)}" alt="${esc(alt)}" fetchpriority="high" ${onload} ${onerror}></picture>`;
