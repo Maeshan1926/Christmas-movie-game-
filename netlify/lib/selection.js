@@ -37,13 +37,14 @@ export function pickForCategory(category, ctx) {
 }
 
 export function allPicked(night) {
-  return new Set(CATEGORY_IDS.flatMap((c) => night.picks[c] || []).filter((x) => x != null));
+  return new Set(Object.values(night.picks || {}).flat().filter((x) => x != null));
 }
 
 export function generateNight(day, ctx) {
   const taken = new Set();
   const picks = {};
-  for (const c of CATEGORY_IDS) {
+  const cats = ctx.categories || CATEGORY_IDS;
+  for (const c of cats) {
     const id = pickForCategory(c, { ...ctx, taken });
     picks[c] = id == null ? [] : [id];
     if (id != null) taken.add(id);
@@ -51,7 +52,7 @@ export function generateNight(day, ctx) {
   return {
     night: day,
     picks,
-    rerolls: Object.fromEntries(CATEGORY_IDS.map((c) => [c, 0])),
+    rerolls: Object.fromEntries(cats.map((c) => [c, 0])),
     chosen: null,
     started_at: null,
     version: 1,
@@ -65,7 +66,7 @@ export class RuleError extends Error {
 /** Returns the patch for a reroll, or throws RuleError. */
 /** Swap one of tonight's movies for a fresh pick without using the reroll (family has seen it). */
 export function replacePatch(night, tmdbId, ctx) {
-  const category = CATEGORY_IDS.find((c) => (night.picks[c] || []).includes(tmdbId));
+  const category = Object.keys(night.picks).find((c) => (night.picks[c] || []).includes(tmdbId));
   if (!category) throw new RuleError('That movie is not in tonight\'s lineup.', 400);
   const taken = allPicked(night);
   const id = pickForCategory(category, { ...ctx, taken });
@@ -78,7 +79,7 @@ export function replacePatch(night, tmdbId, ctx) {
 }
 
 export function rerollPatch(night, category, ctx) {
-  if (!CATEGORY_IDS.includes(category)) throw new RuleError('Unknown category', 400);
+  if (!Object.keys(night.picks).includes(category)) throw new RuleError('Unknown category', 400);
   const used = night.rerolls?.[category] || 0;
   if (used >= REROLLS_PER_CATEGORY) throw new RuleError('That stocking has already been rerolled tonight. New rerolls arrive at midnight Pacific.');
   const taken = allPicked(night);

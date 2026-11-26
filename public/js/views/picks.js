@@ -5,8 +5,7 @@ import { formatDay } from '../shared/dates.js';
 import { posterImg, factsHtml, scoresHtml, streamingHtml, watchLink, markWatched, askConfirm, openMovie } from '../components.js';
 import { playDrumroll, playJingle, playPop } from '../fx/sound.js';
 
-const CAT_COLOR = { comedy: 'var(--comedy)', drama: 'var(--drama)', stocking: 'var(--stocking)' };
-let active = 'comedy';
+let active = null;
 let animateIds = new Set();
 
 function pickCard(m, { label, chosen, watched, delay }) {
@@ -41,6 +40,7 @@ export function renderPicks(el) {
     const c = CATEGORIES.find((x) => (night.picks[x.id] || []).includes(night.chosen));
     if (c) active = c.id;
   }
+  if (!CATEGORIES.some((c) => c.id === active)) active = CATEGORIES[0].id;
   const watched = watchedSet();
   const panels = CATEGORIES.map((c, ci) => {
     const ids = night.picks[c.id] || [];
@@ -49,7 +49,7 @@ export function renderPicks(el) {
       const m = app.movies.get(id);
       return m ? pickCard(m, { label: ids.length > 1 ? (i === 0 ? 'Original' : 'Reroll') : c.label, chosen: night.chosen === id, watched: watched.has(id), delay: ci * 0.35 + i * 0.1 }) : '';
     }).join('');
-    return `<section class="cat-panel ${active === c.id ? 'active' : ''}" id="panel-${c.id}" role="tabpanel" aria-labelledby="tab-${c.id}" style="--cc:${CAT_COLOR[c.id]}">
+    return `<section class="cat-panel ${active === c.id ? 'active' : ''}" id="panel-${c.id}" role="tabpanel" aria-labelledby="tab-${c.id}" style="--cc:${c.color}">
       <div class="cat-title"><h2>${c.emoji} ${esc(c.label)}</h2><small>${esc(c.blurb)}</small></div>
       ${cards ? `<div class="options ${ids.length === 1 ? 'single' : ''}">${cards}</div>` : '<div class="empty-cat">Every movie in this category is watched or skipped.</div>'}
       ${ids.length ? `<button class="btn btn-ghost reroll" data-reroll="${c.id}" ${left <= 0 ? 'disabled' : ''}>🎲 ${left > 0 ? `Reroll ${esc(c.label)} (${left} left tonight)` : 'Reroll used. Both stay on the table'}</button>` : ''}
@@ -59,7 +59,7 @@ export function renderPicks(el) {
   el.innerHTML = `<div class="page-head"><div><div class="eyebrow">${esc(formatDay(night.night, { weekday: 'long', month: 'long', day: 'numeric' }))}</div><h1 class="page-title">Tonight's Lineup</h1></div>
       <a href="#tonight" class="subtle" style="font-size:14px">‹ Home</a></div>
     ${app.catalogMeta?.source === 'demo' ? '<div class="banner">Demo catalog: posters, scores and streaming appear once the site builds with a TMDB key.</div>' : ''}
-    <div class="seg" role="tablist" aria-label="Category">${CATEGORIES.map((c) => `<button role="tab" id="tab-${c.id}" aria-controls="panel-${c.id}" aria-selected="${active === c.id}" style="--cc:${CAT_COLOR[c.id]}" data-tab="${c.id}">${c.emoji} ${esc(c.label)}${(night.picks[c.id] || []).includes(night.chosen) ? '<span class="dot"></span>' : ''}</button>`).join('')}</div>
+    <div class="seg" role="tablist" aria-label="Category">${CATEGORIES.map((c) => `<button role="tab" id="tab-${c.id}" aria-controls="panel-${c.id}" aria-selected="${active === c.id}" style="--cc:${c.color}" data-tab="${c.id}">${c.emoji} ${esc(c.label)}${(night.picks[c.id] || []).includes(night.chosen) ? '<span class="dot"></span>' : ''}</button>`).join('')}</div>
     <div class="lineup">${panels}</div>`;
   animateIds = new Set();
 

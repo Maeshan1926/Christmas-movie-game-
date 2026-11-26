@@ -309,3 +309,72 @@ test('family name and members come from configuration', async () => {
   const trunk = createApi({ store: createMemoryStore(), getCatalog: async () => fixtureCatalog(), familyCode: 'x' });
   assert.deepEqual(await (await trunk(new Request('http://l/api/family'))).json(), { name: 'Trunk', hero: 'builtin' });
 });
+
+test('age-rating limit: PG-13 family never sees R, unrated horror, or an old unrestricted list', async () => {
+  const { createApi } = await import('../netlify/lib/api.js');
+  const { createMemoryStore } = await import('../netlify/lib/store-memory.js');
+  const { allowedByRating } = await import('../public/js/shared/ratings.js');
+  const { makeClock, seeded } = await import('./helpers.js');
+  assert.ok(allowedByRating({ cert: 'PG-13' }, 'PG-13'));
+  assert.ok(allowedByRating({ cert: 'TV-14' }, 'pg13'));
+  assert.ok(!allowedByRating({ cert: 'R' }, 'PG-13'));
+  assert.ok(!allowedByRating({ cert: 'TV-MA' }, 'PG-13'));
+  assert.ok(allowedByRating({ cert: null, genres: ['Romance'] }, 'PG-13'));
+  assert.ok(!allowedByRating({ cert: 'NR', genres: ['Horror'] }, 'PG-13'));
+  assert.ok(allowedByRating({ cert: 'R' }, null));
+
+  const certs = ['G', 'PG', 'PG-13', 'R', null];
+  const catalog = [];
+  let id = 1;
+  for (const category of ['comedy', 'drama', 'stocking']) {
+    for (let i = 0; i < 40; i += 1) {
+      catalog.push({ id, title: `m${id}`, category, genres: i % 7 === 0 ? ['Horror'] : [], cert: certs[i % 5], score: 5 + (i % 10) / 2, votes: 100 + i * 150, providers: null });
+      id += 1;
+    }
+  }
+  const store = createMemoryStore();
+  const clock = makeClock('2026-12-01T19:00:00-08:00');
+  const call = async (api, path) => (await api(new Request(`http://l${path}`, { headers: { 'x-family-code': 'x' } }))).json();
+  // First visit without a limit freezes an unrestricted 100 and a lineup...
+  const open = await call(createApi({ store, getCatalog: async () => catalog, familyCode: 'x', now: clock.now, rng: seeded(3), poolSize: 30 }), '/api/state');
+  assert.ok(open.hundred.ids.some((x) => catalog.find((m) => m.id === x).cert === 'R'));
+  // ...then the site sets PG-13: the 100 and tonight's lineup rebuild under the rule.
+  const kid = createApi({ store, getCatalog: async () => catalog, familyCode: 'x', now: clock.now, rng: seeded(4), poolSize: 30, family: { name: 'Wolanski', members: ['Jamie'], maxRating: 'PG-13' } });
+  const st = await call(kid, '/api/state');
+  const ok = (x) => allowedByRating(catalog.find((m) => m.id === x), 'PG-13');
+  assert.ok(st.hundred.ids.every(ok), 'every movie in the 100 is PG-13 or under');
+  assert.ok(Object.values(st.night.picks).flat().every(ok), 'tonight redrawn within the limit');
+  for (let d = 0; d < 5; d += 1) {
+    clock.advance(86_400_000);
+    assert.ok(Object.values((await call(kid, '/api/state')).night.picks).flat().every(ok));
+  }
+});
+
+test('kids category set: Kids, Comedy, Traditional, each pick fits its category and the limit', async () => {
+  const { createApi } = await import('../netlify/lib/api.js');
+  const { createMemoryStore } = await import('../netlify/lib/store-memory.js');
+  const { categoryFor } = await import('../public/js/shared/config.js');
+  const { makeClock, seeded } = await import('./helpers.js');
+  assert.equal(categoryFor({ genres: ['Animation', 'Family'], year: 2019 }, 'kids'), 'kids');
+  assert.equal(categoryFor({ genres: ['Comedy', 'Family'], year: 1990 }, 'kids'), 'kids');
+  assert.equal(categoryFor({ genres: ['Comedy'], year: 1989 }, 'kids'), 'comedy');
+  assert.equal(categoryFor({ genres: ['Drama'], year: 1946 }, 'kids'), 'classic');
+  assert.equal(categoryFor({ genres: ['Comedy', 'Romance'], year: 1945 }, 'kids'), 'classic');
+  const pool = [['Animation', 'Family'], ['Comedy'], ['Drama', 'Romance'], ['Horror']];
+  const catalog = Array.from({ length: 120 }, (_, i) => ({
+    id: i + 1, title: `m${i + 1}`, category: 'drama', genres: pool[i % 4], year: 1950 + (i % 70), cert: i % 4 === 3 ? 'R' : 'PG', score: 6 + (i % 10) / 5, votes: 200 + i * 40, providers: null,
+  }));
+  const api = createApi({ store: createMemoryStore(), getCatalog: async () => catalog, familyCode: 'x', now: makeClock('2026-12-01T19:00:00-08:00').now, rng: seeded(2), poolSize: 30, family: { name: 'Wolanski', members: ['Jamie'], maxRating: 'PG-13', categories: 'kids' } });
+  const s = await (await api(new Request('http://l/api/state', { headers: { 'x-family-code': 'x' } }))).json();
+  assert.deepEqual(Object.keys(s.night.picks), ['kids', 'comedy', 'classic']);
+  assert.equal(s.family.categories, 'kids');
+  for (const [cat, ids] of Object.entries(s.night.picks)) {
+    for (const id of ids) {
+      const m = catalog.find((x) => x.id === id);
+      assert.equal(categoryFor(m, 'kids'), cat);
+      assert.notEqual(m.cert, 'R');
+    }
+  }
+  const r = await api(new Request('http://l/api/tonight/reroll', { method: 'POST', headers: { 'x-family-code': 'x' }, body: JSON.stringify({ category: 'kids' }) }));
+  assert.equal(r.status, 200);
+});

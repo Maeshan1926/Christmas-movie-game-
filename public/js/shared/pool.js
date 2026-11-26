@@ -43,14 +43,14 @@ export function nightlyPool(catalog, { watched, excluded, wishlist, size = DEFAU
  * at least 20% of the slots, and the rest fill by weighted audience score.
  * Returns ids in rank order (index 0 = #1).
  */
-export function buildHundred(catalog, { keep = [], size = DEFAULT_POOL_SIZE } = {}) {
+export function buildHundred(catalog, { keep = [], size = DEFAULT_POOL_SIZE, categories = CATEGORY_IDS } = {}) {
   const rated = catalog.filter((m) => m.votes > 0);
   const mean = rated.length ? rated.reduce((s, m) => s + (m.score || 0), 0) / rated.length : 6;
   const ranked = [...catalog].sort((a, b) => rankScore(b, mean) - rankScore(a, mean) || a.title.localeCompare(b.title));
   const byId = new Map(catalog.map((m) => [m.id, m]));
   const chosen = new Set(keep.filter((id) => byId.has(id)).slice(0, size));
   const floor = Math.floor(size * 0.2);
-  for (const c of CATEGORY_IDS) {
+  for (const c of categories) {
     let have = [...chosen].filter((id) => byId.get(id).category === c).length;
     for (const m of ranked) {
       if (have >= floor || chosen.size >= size) break;

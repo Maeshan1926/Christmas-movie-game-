@@ -60,6 +60,8 @@ export function apiFromEnv(env = process.env, extra = {}) {
     family: {
       name: String(env.FAMILY_NAME || '').trim() || undefined,
       members: String(env.FAMILY_MEMBERS || '').split(',').map((x) => x.trim()).filter(Boolean),
+      maxRating: env.FAMILY_MAX_RATING || null,
+      categories: env.FAMILY_CATEGORIES || 'default',
       hero: env.HERO_IMAGE != null && String(env.HERO_IMAGE).trim() !== '' ? String(env.HERO_IMAGE).trim() : undefined,
     },
     poolSize: env.NIGHTLY_POOL_SIZE != null && env.NIGHTLY_POOL_SIZE !== '' ? Number(env.NIGHTLY_POOL_SIZE) : undefined,

@@ -1,6 +1,7 @@
 // Client state: the static catalog plus the shared family state from the server.
 import { storage } from './util.js';
-import { setFamily } from './shared/config.js';
+import { setFamily, FAMILY, categoryFor } from './shared/config.js';
+import { allowedByRating } from './shared/ratings.js';
 
 const listeners = new Set();
 export const app = {
@@ -42,9 +43,12 @@ export async function loadCatalog() {
 }
 
 function indexMovies() {
-  app.movies = new Map(app.catalog.map((m) => [m.id, m]));
-  for (const m of app.state?.customMovies || []) if (!app.movies.has(m.id)) app.movies.set(m.id, m);
-  for (const m of app.state?.hundredExtra || []) if (m && !app.movies.has(m.id)) app.movies.set(m.id, m);
+  // Movies above the family's age-rating limit never show, except ones they already watched or added.
+  const watchedIds = new Set((app.state?.watches || []).map((w) => w.tmdb_id));
+  const remap = (m) => (FAMILY.categories === 'default' ? m : { ...m, category: categoryFor(m, FAMILY.categories) });
+  app.movies = new Map(app.catalog.filter((m) => allowedByRating(m, FAMILY.maxRating) || watchedIds.has(m.id)).map((m) => [m.id, remap(m)]));
+  for (const m of app.state?.customMovies || []) if (!app.movies.has(m.id)) app.movies.set(m.id, remap(m));
+  for (const m of app.state?.hundredExtra || []) if (m && !app.movies.has(m.id)) app.movies.set(m.id, remap(m));
 }
 
 /** The frozen Christmas 100 in rank order, as movie records. */

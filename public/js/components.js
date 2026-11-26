@@ -144,7 +144,6 @@ export function openRatings(id, { title } = {}) {
 }
 
 /* ---------- Celebration ---------- */
-const ORN_COLORS = { comedy: '#d63a4e', drama: '#e6b544', stocking: '#9b7bff' };
 export function ornamentSvg(color, star = false) {
   if (star) {
     return '<svg viewBox="0 0 120 140" class="orn"><line x1="60" y1="0" x2="60" y2="22" stroke="#e9dcc0" stroke-width="2"/><polygon points="60,22 74,58 112,60 82,84 93,122 60,100 27,122 38,84 8,60 46,58" fill="#f1cf7e" stroke="#b8862b" stroke-width="3"/></svg>';
@@ -159,7 +158,7 @@ export function celebrate(m) {
   return new Promise((resolve) => {
     const root = $('#fx-root');
     root.innerHTML = `<div class="celebrate" role="status">
-      <div>${ornamentSvg(ORN_COLORS[m.category] || '#d63a4e', star)}
+      <div>${ornamentSvg(categoryById[m.category]?.color || '#d63a4e', star)}
       <h2>${star ? `Gold star! ${n} movies done` : inHundred ? `Ornament #${n} is on the tree` : 'Added to your memories'}</h2>
       <p>${esc(m.title)}</p></div></div>`;
     const el = root.firstElementChild;

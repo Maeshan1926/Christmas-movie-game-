@@ -83,6 +83,9 @@ export function createSupabaseStore({ url, key, fetchImpl = fetch }) {
     async putSettingIfAbsent(id, value) {
       await req('POST', 'custom_movies?on_conflict=tmdb_id', { tmdb_id: id, movie: value }, 'resolution=ignore-duplicates,return=minimal');
     },
+    async putSetting(id, value) {
+      await req('POST', 'custom_movies?on_conflict=tmdb_id', { tmdb_id: id, movie: value }, 'resolution=merge-duplicates,return=minimal');
+    },
     async getProviders(ids) {
       if (!ids.length) return [];
       return req('GET', `provider_cache?tmdb_id=in.(${ids.join(',')})&select=*`);

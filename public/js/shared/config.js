@@ -4,11 +4,33 @@
 export const DEFAULT_FAMILY_NAME = 'Trunk';
 export const DEFAULT_MEMBER_NAMES = ['Dad', 'Mommy', 'Lincoln', 'Sienna'];
 
-export const CATEGORIES = [
-  { id: 'comedy', label: 'Comedy', emoji: '🎅', blurb: 'Comedies, rom-coms and family laughs' },
-  { id: 'drama', label: 'Drama', emoji: '🎄', blurb: 'Heartwarmers, classics and big feelings' },
-  { id: 'stocking', label: 'Wild Card', emoji: '✨', blurb: 'Action, animation, horror, fantasy, adventure or mystery' },
-];
+// Category sets. A site picks one with FAMILY_CATEGORIES (default or kids).
+export const CATEGORY_PRESETS = {
+  default: [
+    { id: 'comedy', label: 'Comedy', emoji: '🎅', color: '#c42c1a', blurb: 'Comedies, rom-coms and family laughs' },
+    { id: 'drama', label: 'Drama', emoji: '🎄', color: '#4f8a3c', blurb: 'Heartwarmers, classics and big feelings' },
+    { id: 'stocking', label: 'Wild Card', emoji: '✨', color: '#8a6bd8', blurb: 'Action, animation, horror, fantasy, adventure or mystery' },
+  ],
+  kids: [
+    { id: 'kids', label: 'Kids', emoji: '🧸', color: '#2c8fc4', blurb: 'Animated and family favorites' },
+    { id: 'comedy', label: 'Comedy', emoji: '🎅', color: '#c42c1a', blurb: 'Christmas comedies and rom-coms' },
+    { id: 'classic', label: 'Traditional', emoji: '🎄', color: '#4f8a3c', blurb: 'Classics, carols and heartwarmers' },
+  ],
+};
+export function normalizePreset(v) { return CATEGORY_PRESETS[String(v || '').trim().toLowerCase()] ? String(v).trim().toLowerCase() : 'default'; }
+
+/** Category a movie belongs to under a preset. Default keeps the catalog's own category. */
+export function categoryFor(m, preset = 'default') {
+  if (preset !== 'kids') return m.category;
+  const g = m.genres || [];
+  const horror = g.includes('Horror') || (m.tags || []).includes('horror');
+  if (!horror && (g.includes('Animation') || g.includes('Family') || (m.tags || []).includes('animated'))) return 'kids';
+  if (g.includes('Comedy') && (m.year || 0) >= 1980) return 'comedy';
+  return 'classic';
+}
+
+// Mutated in place by setFamily so every importer sees the current family's categories.
+export const CATEGORIES = CATEGORY_PRESETS.default.map((c) => ({ ...c }));
 export const CATEGORY_IDS = CATEGORIES.map((c) => c.id);
 export const categoryById = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]));
 
@@ -30,11 +52,21 @@ export function buildMembers(names) {
 // Mutated in place by setFamily so every importer sees the current family.
 export const MEMBERS = buildMembers(DEFAULT_MEMBER_NAMES);
 export const MEMBER_IDS = MEMBERS.map((m) => m.id);
-export const FAMILY = { name: DEFAULT_FAMILY_NAME, hero: null };
+export const FAMILY = { name: DEFAULT_FAMILY_NAME, hero: null, maxRating: null, categories: 'default' };
 
 export function setFamily({ name, members, hero } = {}) {
   if (name) FAMILY.name = name;
   FAMILY.hero = hero || null;
+  const opts = arguments[0] || {};
+  if ('maxRating' in opts) FAMILY.maxRating = opts.maxRating || null;
+  if ('categories' in opts) {
+    FAMILY.categories = normalizePreset(opts.categories);
+    const next = CATEGORY_PRESETS[FAMILY.categories].map((c) => ({ ...c }));
+    CATEGORIES.splice(0, CATEGORIES.length, ...next);
+    CATEGORY_IDS.splice(0, CATEGORY_IDS.length, ...next.map((c) => c.id));
+    Object.keys(categoryById).forEach((k) => delete categoryById[k]);
+    next.forEach((c) => { categoryById[c.id] = c; });
+  }
   if (members?.length) {
     const next = members[0]?.id ? members : buildMembers(members);
     MEMBERS.splice(0, MEMBERS.length, ...next);

@@ -2,10 +2,10 @@ import { esc, posterUrl, storage } from '../util.js';
 import { app, hundredWatchedIds, firstWatch } from '../store.js';
 import { ratingsByMovie } from '../shared/stats.js';
 import { formatDay, daysUntilChristmas } from '../shared/dates.js';
-import { categoryById } from '../shared/config.js';
+import { categoryById, CATEGORIES } from '../shared/config.js';
 import { openModal, openMovie, closeModal } from '../components.js';
 
-export const ORN = { comedy: '#d63a4e', drama: '#e6b544', stocking: '#9b7bff' };
+const ornColor = (c) => categoryById[c]?.color || '#d63a4e';
 const APEX_Y = 58; const BASE_Y = 500; const HALF_BASE = 182;
 
 function halfWidth(y) { return (HALF_BASE * (y - APEX_Y)) / (BASE_Y - APEX_Y); }
@@ -64,7 +64,7 @@ function treeSvg(entries, total, { seen, toppers }) {
     const body = isStar
       ? star(x, y, radius * 1.25, 'fill="#f1cf7e" stroke="#a87a22" stroke-width="1.5"')
       : `<rect x="${(x - radius * 0.3).toFixed(1)}" y="${(y - radius - 3).toFixed(1)}" width="${(radius * 0.6).toFixed(1)}" height="4" rx="1" fill="#c9a24a"/>
-         <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${radius.toFixed(1)}" fill="${ORN[e.movie.category] || '#ccc'}" stroke="rgba(0,0,0,.35)" stroke-width="1"/>
+         <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${radius.toFixed(1)}" fill="${ornColor(e.movie.category)}" stroke="rgba(0,0,0,.35)" stroke-width="1"/>
          <circle cx="${(x - radius * 0.35).toFixed(1)}" cy="${(y - radius * 0.35).toFixed(1)}" r="${(radius * 0.28).toFixed(1)}" fill="#fff" opacity=".5"/>`;
     return `<g class="ornament ${i >= seen ? 'new' : ''}" tabindex="0" role="button" data-i="${i}" aria-label="${esc(label)}" style="animation-delay:${Math.max(0, i - seen) * 0.12}s"><title>${esc(label)}</title>${body}</g>`;
   }).join('');
@@ -99,7 +99,7 @@ export function renderTree(el) {
     <div class="tree-stage">
       <div class="tree-count">${entries.length} / ${total}</div>
       ${treeSvg(entries, total, { seen, toppers: stars })}
-      <div class="tree-meta">${['comedy', 'drama', 'stocking'].map((c) => `<span><i style="background:${ORN[c]}"></i>${categoryById[c].label}</span>`).join('')}<span>⭐ ${stars} gold star${stars === 1 ? '' : 's'}</span></div>
+      <div class="tree-meta">${CATEGORIES.map((c) => `<span><i style="background:${c.color}"></i>${c.label}</span>`).join('')}<span>⭐ ${stars} gold star${stars === 1 ? '' : 's'}</span></div>
       ${entries.length ? '<p class="subtle" style="font-size:13px">Tap an ornament to relive the night.</p>' : '<p class="subtle">The tree is bare. Finish tonight\'s movie to hang the first ornament.</p>'}
     </div>`;
   storage(seenKey, String(entries.length));

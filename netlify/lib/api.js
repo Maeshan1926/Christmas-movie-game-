@@ -1,11 +1,12 @@
 // The family API. A Web-standard (Request) => Response handler shared by Netlify and the dev server.
 import crypto from 'node:crypto';
-import { CATEGORY_IDS, PROVIDER_TTL_HOURS, buildMembers, DEFAULT_FAMILY_NAME, DEFAULT_MEMBER_NAMES } from '../../public/js/shared/config.js';
+import { CATEGORY_PRESETS, normalizePreset, categoryFor, PROVIDER_TTL_HOURS, buildMembers, DEFAULT_FAMILY_NAME, DEFAULT_MEMBER_NAMES } from '../../public/js/shared/config.js';
 import { pacificDate, seasonOf, msUntilPacificMidnight } from '../../public/js/shared/dates.js';
 import { activeWatchedIds } from '../../public/js/shared/stats.js';
 import { generateNight, rerollPatch, replacePatch, allPicked, RuleError, RECENT_NIGHTS_TO_AVOID } from './selection.js';
 import { fetchProviders } from './tmdb.js';
 import { buildHundred, DEFAULT_POOL_SIZE } from '../../public/js/shared/pool.js';
+import { allowedByRating, normalizeMaxRating } from '../../public/js/shared/ratings.js';
 
 export const HUNDRED_SETTING_ID = -100;
 import { buildMovieRecord, DETAIL_APPEND } from './movie-record.js';
@@ -54,6 +55,11 @@ export function createApi({ store, getCatalog, familyCode, tmdb = null, now = ()
   const familyName = family.name || DEFAULT_FAMILY_NAME;
   const members = buildMembers(family.members?.length ? family.members : DEFAULT_MEMBER_NAMES);
   const memberIds = members.map((m) => m.id);
+  const maxRating = normalizeMaxRating(family.maxRating);
+  const preset = normalizePreset(family.categories);
+  const categories = CATEGORY_PRESETS[preset].map((c) => c.id);
+  // 'any' for the original setup so existing lists are never rebuilt by this change.
+  const rulesKey = preset === 'default' ? (maxRating || 'any') : `${maxRating || 'any'}|${preset}`;
   const hero = family.hero === undefined ? (familyName === DEFAULT_FAMILY_NAME ? 'builtin' : null) : family.hero;
   let hundredMemo = null;
 
@@ -62,14 +68,16 @@ export function createApi({ store, getCatalog, familyCode, tmdb = null, now = ()
     if (hundredMemo) return hundredMemo;
     if (!(poolSize > 0) || !store.getSetting) return null;
     let s = await store.getSetting(HUNDRED_SETTING_ID);
-    if (!s?.ids?.length) {
+    // Rebuild once when the family's rules change (e.g. a new age-rating limit). Watched movies stay in.
+    const rulesChanged = s?.ids?.length && (s.rules || 'any') !== rulesKey;
+    if (!s?.ids?.length || rulesChanged) {
       const [catalog, watches] = await Promise.all([baseCatalog(), store.listWatches()]);
       const byId = new Map(catalog.map((m) => [m.id, m]));
       const keep = [...new Set([...watches].sort((a, b) => (a.watched_on < b.watched_on ? -1 : 1)).map((w) => w.tmdb_id))];
-      const ids = buildHundred(catalog, { keep, size: poolSize });
-      await store.putSettingIfAbsent(HUNDRED_SETTING_ID, {
-        kind: 'christmas100', frozenAt: now().toISOString(), ids, movies: ids.map((id) => byId.get(id)),
-      });
+      const ids = buildHundred(catalog, { keep, size: poolSize, categories });
+      const value = { kind: 'christmas100', rules: rulesKey, frozenAt: now().toISOString(), ids, movies: ids.map((id) => byId.get(id)) };
+      if (rulesChanged && store.putSetting) await store.putSetting(HUNDRED_SETTING_ID, value);
+      else await store.putSettingIfAbsent(HUNDRED_SETTING_ID, value);
       s = await store.getSetting(HUNDRED_SETTING_ID);
     }
     hundredMemo = s;
@@ -77,7 +85,8 @@ export function createApi({ store, getCatalog, familyCode, tmdb = null, now = ()
   }
 
   async function baseCatalog() {
-    const base = await getCatalog();
+    const base = (await getCatalog()).filter((m) => allowedByRating(m, maxRating))
+      .map((m) => (preset === 'default' ? m : { ...m, category: categoryFor(m, preset) }));
     const custom = store.listCustomMovies ? await store.listCustomMovies() : [];
     if (!custom.length) return base;
     const ids = new Set(base.map((m) => m.id));
@@ -89,7 +98,7 @@ export function createApi({ store, getCatalog, familyCode, tmdb = null, now = ()
     const [base, h] = await Promise.all([baseCatalog(), hundred()]);
     if (!h) return base;
     const ids = new Set(base.map((m) => m.id));
-    return [...base, ...(h.movies || []).filter((m) => m && !ids.has(m.id))];
+    return [...base, ...(h.movies || []).filter((m) => m && !ids.has(m.id)).map((m) => (preset === 'default' ? m : { ...m, category: categoryFor(m, preset) }))];
   }
 
   async function selectionContext(today) {
@@ -105,14 +114,25 @@ export function createApi({ store, getCatalog, familyCode, tmdb = null, now = ()
       excluded,
       wishlist,
       pool: h ? new Set(h.ids) : null,
-      recent: new Set(recentNights.flatMap((n) => CATEGORY_IDS.flatMap((c) => n.picks?.[c] || []))),
+      recent: new Set(recentNights.flatMap((n) => Object.values(n.picks || {}).flat())),
+      categories,
       rng,
     };
   }
 
   async function ensureNight(today) {
     const existing = await store.getNight(today);
-    if (existing) return existing;
+    if (existing) {
+      // A lineup drawn before a rating limit was set gets redrawn, unless the family already picked.
+      const h = await hundred();
+      const picks = allPicked(existing);
+      const keysDiffer = Object.keys(existing.picks).sort().join() !== [...categories].sort().join();
+      if (!existing.chosen && (keysDiffer || (maxRating && h && [...picks].some((id) => !h.ids.includes(id))))) {
+        const fresh = generateNight(today, await selectionContext(today));
+        return (await store.updateNight(today, existing.version, { picks: fresh.picks, rerolls: fresh.rerolls })) || store.getNight(today);
+      }
+      return existing;
+    }
     const night = generateNight(today, await selectionContext(today));
     // insertNight never overwrites: if another device won the race, we get its night back.
     return store.insertNight(night);
@@ -183,7 +203,7 @@ export function createApi({ store, getCatalog, familyCode, tmdb = null, now = ()
       providers,
       tmdbLive: !!tmdb,
       poolSize,
-      family: { name: familyName, members, hero },
+      family: { name: familyName, members, hero, maxRating, categories: preset },
       hundred: h ? { ids: h.ids, frozenAt: h.frozenAt } : null,
       hundredExtra: h ? (h.movies || []).filter((m) => m && !baseIds.has(m.id)) : [],
       storage: store.kind,

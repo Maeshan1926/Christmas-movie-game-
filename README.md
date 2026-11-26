@@ -40,7 +40,11 @@ One codebase serves any number of families. Each family gets its own Netlify sit
 |---|---|---|
 | `FAMILY_NAME` | `Wolanski` | Shown as "The Wolanski Family". Defaults to Trunk. |
 | `FAMILY_MEMBERS` | `Jamie, Greg, Iris, Eloise` | Comma separated, up to 8. Ratings are stored per name, so keep names stable. |
+| `FAMILY_MAX_RATING` | `PG-13` | Optional: G, PG, PG-13 or R. Hides anything above it; unrated horror is hidden too. TV ratings map to the same scale. |
+| `FAMILY_CATEGORIES` | `kids` | Optional. `kids` = Kids, Comedy, Traditional. Default = Comedy, Drama, Wild Card. |
 | `HERO_IMAGE` | `/img/wolanski.webp` or a full https URL | Optional. Without it, an illustrated banner with the family name shows. |
+Changing `FAMILY_MAX_RATING` or `FAMILY_CATEGORIES` rebuilds that site's Christmas 100 once on the next visit (watched movies stay in) and redraws tonight's lineup unless the family already picked.
+
 | `FAMILY_CODE`, `TMDB_READ_TOKEN`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | | Same as above. The TMDB token can be shared across sites. |
 
 ## Optional: Rotten Tomatoes scores
