@@ -59,7 +59,8 @@ export function createApi({ store, getCatalog, familyCode, tmdb = null, now = ()
   const preset = normalizePreset(family.categories);
   const categories = CATEGORY_PRESETS[preset].map((c) => c.id);
   // 'any' for the original setup so existing lists are never rebuilt by this change.
-  const rulesKey = preset === 'default' ? (maxRating || 'any') : `${maxRating || 'any'}|${preset}`;
+  // Bump the trailing version when a preset's rules change so those sites rebuild once.
+  const rulesKey = preset === 'default' ? (maxRating || 'any') : `${maxRating || 'any'}|${preset}|v2`;
   const hero = family.hero === undefined ? (familyName === DEFAULT_FAMILY_NAME ? 'builtin' : null) : family.hero;
   let hundredMemo = null;
 
